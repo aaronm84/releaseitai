@@ -3,7 +3,8 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WorkstreamsController;
 use App\Http\Controllers\ReleaseController;
-use App\Http\Controllers\QuickAddController;
+use App\Http\Controllers\StakeholderController;
+use App\Http\Controllers\DesignSystemController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -50,10 +51,13 @@ Route::middleware('auth')->group(function () {
         Route::patch('/{release}/tasks/bulk', [ReleaseController::class, 'bulkUpdateTasks'])->name('tasks.bulk-update');
     });
 
-    Route::prefix('quick-add')->name('quick-add')->group(function () {
-        Route::get('/', [QuickAddController::class, 'index']);
-        Route::post('/', [QuickAddController::class, 'process']);
-        Route::post('/convert-to-release', [QuickAddController::class, 'convertToRelease']);
-        Route::get('/select-release', [QuickAddController::class, 'selectRelease']);
+    Route::prefix('stakeholders')->name('stakeholders.')->group(function () {
+        Route::get('/', [StakeholderController::class, 'index'])->name('index');
+        Route::get('/{stakeholder}', [StakeholderController::class, 'show'])->name('show');
+        Route::put('/{stakeholder}', [StakeholderController::class, 'update'])->name('update');
+        Route::patch('/{stakeholder}/contact', [StakeholderController::class, 'updateLastContact'])->name('update-contact');
     });
+
+
+    Route::get('/design-system', [DesignSystemController::class, 'index'])->name('design-system');
 });
