@@ -2,12 +2,12 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Workstream;
+use App\Traits\HasWorkstreamValidation;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreWorkstreamRequest extends FormRequest
 {
+    use HasWorkstreamValidation;
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -23,25 +23,7 @@ class StoreWorkstreamRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'type' => ['required', Rule::in(['product_line', 'initiative', 'experiment'])],
-            'status' => ['sometimes', Rule::in(['draft', 'active', 'on_hold', 'completed', 'cancelled'])],
-            'owner_id' => 'required|exists:users,id',
-            'parent_workstream_id' => [
-                'nullable',
-                'exists:workstreams,id',
-                function ($attribute, $value, $fail) {
-                    if ($value) {
-                        $parent = Workstream::find($value);
-                        if ($parent && $parent->getHierarchyDepth() >= Workstream::MAX_HIERARCHY_DEPTH) {
-                            $fail('Workstream hierarchy cannot exceed 3 levels deep.');
-                        }
-                    }
-                },
-            ],
-        ];
+        return $this->getWorkstreamValidationRules();
     }
 
     /**
@@ -49,9 +31,6 @@ class StoreWorkstreamRequest extends FormRequest
      */
     public function messages(): array
     {
-        return [
-            'type.in' => 'The type must be one of: product_line, initiative, experiment.',
-            'parent_workstream_id.exists' => 'The selected parent workstream does not exist.',
-        ];
+        return $this->getWorkstreamValidationMessages();
     }
 }

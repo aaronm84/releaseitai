@@ -97,6 +97,14 @@ class Release extends Model
     }
 
     /**
+     * Get the tasks for the release.
+     */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(ReleaseTask::class);
+    }
+
+    /**
      * Get pending approval requests for the release.
      */
     public function pendingApprovalRequests(): HasMany

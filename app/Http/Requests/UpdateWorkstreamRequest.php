@@ -2,12 +2,14 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Workstream;
+use App\Rules\ValidWorkstreamMove;
+use App\Traits\HasWorkstreamValidation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateWorkstreamRequest extends FormRequest
 {
+    use HasWorkstreamValidation;
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -24,33 +26,21 @@ class UpdateWorkstreamRequest extends FormRequest
     public function rules(): array
     {
         $workstream = $this->route('workstream');
+        $rules = $this->getWorkstreamValidationRules();
 
-        return [
-            'name' => 'sometimes|string|max:255',
-            'description' => 'sometimes|nullable|string',
-            'type' => ['sometimes', Rule::in(['product_line', 'initiative', 'experiment'])],
-            'status' => ['sometimes', Rule::in(['draft', 'active', 'on_hold', 'completed', 'cancelled'])],
-            'owner_id' => 'sometimes|exists:users,id',
-            'parent_workstream_id' => [
-                'sometimes',
-                'nullable',
-                'exists:workstreams,id',
-                function ($attribute, $value, $fail) use ($workstream) {
-                    if ($value) {
-                        // Check for circular hierarchy
-                        if ($workstream && $workstream->wouldCreateCircularHierarchy($value)) {
-                            $fail('Cannot create circular workstream relationship.');
-                        }
-
-                        // Check depth limit
-                        $parent = Workstream::find($value);
-                        if ($parent && $parent->getHierarchyDepth() >= Workstream::MAX_HIERARCHY_DEPTH) {
-                            $fail('Workstream hierarchy cannot exceed 3 levels deep.');
-                        }
-                    }
-                },
-            ],
+        // Make all fields optional for updates
+        $rules['name'] = 'sometimes|string|max:255';
+        $rules['description'] = 'sometimes|nullable|string';
+        $rules['type'] = ['sometimes', Rule::in(['product_line', 'initiative', 'experiment'])];
+        $rules['owner_id'] = 'sometimes|exists:users,id';
+        $rules['parent_workstream_id'] = [
+            'sometimes',
+            'nullable',
+            'exists:workstreams,id',
+            new ValidWorkstreamMove($workstream),
         ];
+
+        return $rules;
     }
 
     /**
@@ -58,9 +48,6 @@ class UpdateWorkstreamRequest extends FormRequest
      */
     public function messages(): array
     {
-        return [
-            'type.in' => 'The type must be one of: product_line, initiative, experiment.',
-            'parent_workstream_id.exists' => 'The selected parent workstream does not exist.',
-        ];
+        return $this->getWorkstreamValidationMessages();
     }
 }

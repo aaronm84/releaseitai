@@ -9,68 +9,30 @@ use App\Http\Requests\MoveWorkstreamRequest;
 use App\Http\Requests\StoreWorkstreamPermissionRequest;
 use App\Http\Requests\StoreWorkstreamRequest;
 use App\Http\Requests\UpdateWorkstreamRequest;
+use App\Http\Resources\WorkstreamResource;
 use App\Models\Workstream;
-use App\Models\WorkstreamPermission;
-use Illuminate\Http\Request;
+use App\Services\PaginationService;
+use App\Services\WorkstreamService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class WorkstreamController extends Controller
 {
+    public function __construct(
+        private WorkstreamService $workstreamService,
+        private PaginationService $paginationService
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
     public function index(IndexWorkstreamRequest $request): JsonResponse
     {
-        $query = Workstream::with(['owner', 'parentWorkstream']);
+        $filters = $request->only(['type', 'status', 'parent_workstream_id']);
+        $perPage = $request->get('per_page', 50);
 
-        // Filter by type if provided
-        if ($request->has('type')) {
-            $query->where('type', $request->type);
-        }
+        $workstreams = $this->workstreamService->getWorkstreams($filters, $perPage);
 
-        // Filter by status if provided
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        // Filter by parent if provided
-        if ($request->has('parent_workstream_id')) {
-            if ($request->parent_workstream_id === 'null') {
-                $query->whereNull('parent_workstream_id');
-            } else {
-                $query->where('parent_workstream_id', $request->parent_workstream_id);
-            }
-        }
-
-        $workstreams = $query->orderBy('name')->get();
-
-        return response()->json([
-            'data' => $workstreams->map(function ($workstream) {
-                return [
-                    'id' => $workstream->id,
-                    'name' => $workstream->name,
-                    'description' => $workstream->description,
-                    'type' => $workstream->type,
-                    'status' => $workstream->status,
-                    'parent_workstream_id' => $workstream->parent_workstream_id,
-                    'owner_id' => $workstream->owner_id,
-                    'owner' => $workstream->owner ? [
-                        'id' => $workstream->owner->id,
-                        'name' => $workstream->owner->name,
-                        'email' => $workstream->owner->email,
-                    ] : null,
-                    'parent_workstream' => $workstream->parentWorkstream ? [
-                        'id' => $workstream->parentWorkstream->id,
-                        'name' => $workstream->parentWorkstream->name,
-                        'type' => $workstream->parentWorkstream->type,
-                    ] : null,
-                    'created_at' => $workstream->created_at,
-                    'updated_at' => $workstream->updated_at,
-                ];
-            })
-        ]);
+        return $this->paginationService->jsonResponse($workstreams);
     }
 
     /**
@@ -78,34 +40,19 @@ class WorkstreamController extends Controller
      */
     public function store(StoreWorkstreamRequest $request): JsonResponse
     {
-        $workstream = Workstream::create($request->validated());
+        try {
+            $workstream = $this->workstreamService->createWorkstream($request->validated());
 
-        // Load relationships for response
-        $workstream->load(['owner', 'parentWorkstream']);
-
-        return response()->json([
-            'data' => [
-                'id' => $workstream->id,
-                'name' => $workstream->name,
-                'description' => $workstream->description,
-                'type' => $workstream->type,
-                'status' => $workstream->status,
-                'parent_workstream_id' => $workstream->parent_workstream_id,
-                'owner_id' => $workstream->owner_id,
-                'owner' => $workstream->owner ? [
-                    'id' => $workstream->owner->id,
-                    'name' => $workstream->owner->name,
-                    'email' => $workstream->owner->email,
-                ] : null,
-                'parent_workstream' => $workstream->parentWorkstream ? [
-                    'id' => $workstream->parentWorkstream->id,
-                    'name' => $workstream->parentWorkstream->name,
-                    'type' => $workstream->parentWorkstream->type,
-                ] : null,
-                'created_at' => $workstream->created_at,
-                'updated_at' => $workstream->updated_at,
-            ]
-        ], 201);
+            return response()->json([
+                'data' => new WorkstreamResource($workstream)
+            ], 201);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'errors' => [
+                    'parent_workstream_id' => [$e->getMessage()]
+                ]
+            ], 422);
+        }
     }
 
     /**
@@ -113,35 +60,14 @@ class WorkstreamController extends Controller
      */
     public function show(Workstream $workstream): JsonResponse
     {
-        // Check access permissions
-        if (!$this->userCanAccessWorkstream($workstream, 'view')) {
+        $workstream = $this->workstreamService->getWorkstream($workstream, 'view');
+
+        if (!$workstream) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $workstream->load(['owner', 'parentWorkstream']);
-
         return response()->json([
-            'data' => [
-                'id' => $workstream->id,
-                'name' => $workstream->name,
-                'description' => $workstream->description,
-                'type' => $workstream->type,
-                'status' => $workstream->status,
-                'parent_workstream_id' => $workstream->parent_workstream_id,
-                'owner_id' => $workstream->owner_id,
-                'owner' => $workstream->owner ? [
-                    'id' => $workstream->owner->id,
-                    'name' => $workstream->owner->name,
-                    'email' => $workstream->owner->email,
-                ] : null,
-                'parent_workstream' => $workstream->parentWorkstream ? [
-                    'id' => $workstream->parentWorkstream->id,
-                    'name' => $workstream->parentWorkstream->name,
-                    'type' => $workstream->parentWorkstream->type,
-                ] : null,
-                'created_at' => $workstream->created_at,
-                'updated_at' => $workstream->updated_at,
-            ]
+            'data' => new WorkstreamResource($workstream)
         ]);
     }
 
@@ -150,38 +76,14 @@ class WorkstreamController extends Controller
      */
     public function update(UpdateWorkstreamRequest $request, Workstream $workstream): JsonResponse
     {
-        // Check edit permissions
-        if (!$this->userCanAccessWorkstream($workstream, 'edit')) {
+        $updatedWorkstream = $this->workstreamService->updateWorkstream($workstream, $request->validated());
+
+        if (!$updatedWorkstream) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $workstream->update($request->validated());
-
-        // Load relationships for response
-        $workstream->load(['owner', 'parentWorkstream']);
-
         return response()->json([
-            'data' => [
-                'id' => $workstream->id,
-                'name' => $workstream->name,
-                'description' => $workstream->description,
-                'type' => $workstream->type,
-                'status' => $workstream->status,
-                'parent_workstream_id' => $workstream->parent_workstream_id,
-                'owner_id' => $workstream->owner_id,
-                'owner' => $workstream->owner ? [
-                    'id' => $workstream->owner->id,
-                    'name' => $workstream->owner->name,
-                    'email' => $workstream->owner->email,
-                ] : null,
-                'parent_workstream' => $workstream->parentWorkstream ? [
-                    'id' => $workstream->parentWorkstream->id,
-                    'name' => $workstream->parentWorkstream->name,
-                    'type' => $workstream->parentWorkstream->type,
-                ] : null,
-                'created_at' => $workstream->created_at,
-                'updated_at' => $workstream->updated_at,
-            ]
+            'data' => new WorkstreamResource($updatedWorkstream)
         ]);
     }
 
@@ -190,13 +92,11 @@ class WorkstreamController extends Controller
      */
     public function destroy(Workstream $workstream): JsonResponse
     {
-        if (!$workstream->canBeDeleted()) {
+        if (!$this->workstreamService->deleteWorkstream($workstream)) {
             return response()->json([
                 'message' => 'Cannot delete workstream with child workstreams. Move or delete children first.'
             ], 422);
         }
-
-        $workstream->delete();
 
         return response()->json(null, 204);
     }
@@ -206,15 +106,14 @@ class WorkstreamController extends Controller
      */
     public function hierarchy(Workstream $workstream): JsonResponse
     {
-        // Check access permissions
-        if (!$this->userCanAccessWorkstream($workstream, 'view')) {
+        $hierarchy = $this->workstreamService->getHierarchy($workstream);
+
+        if ($hierarchy === null) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $workstream->load(['owner', 'childWorkstreams.owner', 'childWorkstreams.childWorkstreams.owner']);
-
         return response()->json([
-            'data' => $workstream->buildHierarchyTree()
+            'data' => $hierarchy
         ]);
     }
 
@@ -223,13 +122,14 @@ class WorkstreamController extends Controller
      */
     public function rollupReport(Workstream $workstream): JsonResponse
     {
-        // Check access permissions
-        if (!$this->userCanAccessWorkstream($workstream, 'view')) {
+        $report = $this->workstreamService->getRollupReport($workstream);
+
+        if ($report === null) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
         return response()->json([
-            'data' => $workstream->getRollupReport()
+            'data' => $report
         ]);
     }
 
@@ -238,18 +138,14 @@ class WorkstreamController extends Controller
      */
     public function permissions(Workstream $workstream): JsonResponse
     {
-        // Check access permissions
-        if (!$this->userCanAccessWorkstream($workstream, 'view')) {
+        $permissions = $this->workstreamService->getPermissions($workstream);
+
+        if ($permissions === null) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $userId = Auth::id();
-        $permissions = $workstream->getEffectivePermissionsForUser($userId);
-
         return response()->json([
-            'data' => [
-                'user_permissions' => $permissions
-            ]
+            'data' => $permissions
         ]);
     }
 
@@ -258,27 +154,11 @@ class WorkstreamController extends Controller
      */
     public function storePermissions(StoreWorkstreamPermissionRequest $request, Workstream $workstream): JsonResponse
     {
+        $permission = $this->workstreamService->grantPermissions($workstream, $request->validated());
 
-        // Check if current user can grant permissions
-        // They can grant if they have admin access OR if they own a parent workstream
-        $canGrant = $this->userCanAccessWorkstream($workstream, 'admin') ||
-                   $this->userOwnsParentWorkstream($workstream);
-
-        if (!$canGrant) {
+        if (!$permission) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
-
-        $permission = WorkstreamPermission::updateOrCreate(
-            [
-                'workstream_id' => $workstream->id,
-                'user_id' => $request->user_id,
-                'permission_type' => $request->permission_type,
-            ],
-            [
-                'scope' => $request->scope ?? 'workstream_only',
-                'granted_by' => Auth::id(),
-            ]
-        );
 
         return response()->json([
             'data' => [
@@ -299,33 +179,17 @@ class WorkstreamController extends Controller
      */
     public function move(MoveWorkstreamRequest $request, Workstream $workstream): JsonResponse
     {
+        $result = $this->workstreamService->moveWorkstream($workstream, $request->new_parent_workstream_id);
 
-        $newParentId = $request->new_parent_workstream_id;
-
-        // Validate hierarchy constraints
-        if ($newParentId) {
-            // Check for circular hierarchy
-            if ($workstream->wouldCreateCircularHierarchy($newParentId)) {
-                return response()->json([
-                    'errors' => [
-                        'new_parent_workstream_id' => ['Cannot create circular workstream relationship.']
-                    ]
-                ], 422);
-            }
-
-            // Check depth limit
-            $newParent = Workstream::find($newParentId);
-            if ($newParent->getHierarchyDepth() >= Workstream::MAX_HIERARCHY_DEPTH) {
-                return response()->json([
-                    'errors' => [
-                        'new_parent_workstream_id' => ['Workstream hierarchy cannot exceed 3 levels deep.']
-                    ]
-                ], 422);
-            }
+        if (!$result['success']) {
+            return response()->json([
+                'errors' => [
+                    'new_parent_workstream_id' => [$result['error']]
+                ]
+            ], 422);
         }
 
-        $workstream->update(['parent_workstream_id' => $newParentId]);
-        $workstream->load(['parentWorkstream']);
+        $workstream = $result['workstream'];
 
         return response()->json([
             'data' => [
@@ -345,72 +209,14 @@ class WorkstreamController extends Controller
      */
     public function bulkUpdate(BulkUpdateWorkstreamRequest $request): JsonResponse
     {
-
-        $workstreamIds = $request->workstream_ids;
-        $updates = $request->updates;
-
-        $workstreams = Workstream::whereIn('id', $workstreamIds)->get();
-
-        $updatedWorkstreams = [];
-        foreach ($workstreams as $workstream) {
-            $workstream->update($updates);
-            $updatedWorkstreams[] = [
-                'id' => $workstream->id,
-                'status' => $workstream->status,
-            ];
-        }
+        $result = $this->workstreamService->bulkUpdateWorkstreams(
+            $request->workstream_ids,
+            $request->updates
+        );
 
         return response()->json([
-            'data' => [
-                'updated_count' => count($updatedWorkstreams),
-                'updated_workstreams' => $updatedWorkstreams,
-            ]
+            'data' => $result
         ]);
     }
 
-    /**
-     * Check if the current user can access a workstream with the given permission.
-     */
-    private function userCanAccessWorkstream(Workstream $workstream, string $permissionType): bool
-    {
-        $userId = Auth::id();
-
-        // Owner always has access
-        if ($workstream->owner_id === $userId) {
-            return true;
-        }
-
-        // Get effective permissions for the user
-        $effectivePermissions = $workstream->getEffectivePermissionsForUser($userId);
-
-        // Check if user has the required permission or higher
-        $permissionHierarchy = ['view' => 1, 'edit' => 2, 'admin' => 3];
-        $requiredLevel = $permissionHierarchy[$permissionType] ?? 0;
-
-        foreach ($effectivePermissions['effective_permissions'] as $permission) {
-            $userLevel = $permissionHierarchy[$permission] ?? 0;
-            if ($userLevel >= $requiredLevel) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Check if the current user owns a parent workstream in the hierarchy.
-     */
-    private function userOwnsParentWorkstream(Workstream $workstream): bool
-    {
-        $userId = Auth::id();
-        $ancestors = $workstream->getAllAncestors();
-
-        foreach ($ancestors as $ancestor) {
-            if ($ancestor->owner_id === $userId) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }

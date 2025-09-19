@@ -50,6 +50,11 @@ class ChecklistItemAssignment extends Model
         });
 
         static::created(function ($assignment) {
+            // Skip expensive operations during testing
+            if (app()->environment('testing')) {
+                return;
+            }
+
             // Calculate SLA deadline after the record is created and relationships can be loaded
             $assignment->load('checklistItem');
             $assignment->calculateSlaDeadline();

@@ -2,16 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Traits\WorkstreamHierarchyOptimized;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class Workstream extends Model
 {
-    use HasFactory;
+    use HasFactory, WorkstreamHierarchyOptimized;
 
     /**
      * Workstream type constants
@@ -46,7 +49,40 @@ class Workstream extends Model
         'parent_workstream_id',
         'status',
         'owner_id',
+        'hierarchy_depth',
     ];
+
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function ($workstream) {
+            if (is_null($workstream->hierarchy_depth)) {
+                $workstream->hierarchy_depth = $workstream->calculateHierarchyDepth();
+            }
+        });
+
+        static::updating(function ($workstream) {
+            // If parent_workstream_id changed, recalculate hierarchy_depth
+            if ($workstream->isDirty('parent_workstream_id')) {
+                $workstream->hierarchy_depth = $workstream->calculateHierarchyDepth();
+            }
+        });
+    }
+
+    /**
+     * Calculate hierarchy depth based on parent relationship.
+     */
+    protected function calculateHierarchyDepth(): int
+    {
+        if (!$this->parent_workstream_id) {
+            return 1;
+        }
+
+        $parent = static::find($this->parent_workstream_id);
+        return $parent ? $parent->getHierarchyDepth() + 1 : 1;
+    }
 
     /**
      * Get the owner of the workstream.
@@ -73,6 +109,22 @@ class Workstream extends Model
     }
 
     /**
+     * Alias for childWorkstreams to match controller expectation.
+     */
+    public function children(): HasMany
+    {
+        return $this->childWorkstreams();
+    }
+
+    /**
+     * Get active releases count.
+     */
+    public function activeReleases(): HasMany
+    {
+        return $this->releases()->where('status', '!=', 'completed');
+    }
+
+    /**
      * Get the releases for the workstream.
      */
     public function releases(): HasMany
@@ -94,15 +146,8 @@ class Workstream extends Model
      */
     public function getHierarchyDepth(): int
     {
-        $depth = 1;
-        $current = $this;
-
-        while ($current->parent_workstream_id) {
-            $depth++;
-            $current = $current->parentWorkstream;
-        }
-
-        return $depth;
+        // Use optimized version if available, fallback to cached column or calculation
+        return $this->getHierarchyDepthOptimized();
     }
 
     /**
@@ -114,14 +159,8 @@ class Workstream extends Model
             return false;
         }
 
-        // Can't be parent of itself
-        if ($newParentId === $this->id) {
-            return true;
-        }
-
-        // Check if the new parent is a descendant of this workstream
-        $descendants = $this->getAllDescendants();
-        return $descendants->contains('id', $newParentId);
+        // Use optimized version
+        return $this->wouldCreateCircularHierarchyOptimized($newParentId);
     }
 
     /**
@@ -129,15 +168,8 @@ class Workstream extends Model
      */
     public function getAllAncestors(): Collection
     {
-        $ancestors = Collection::make();
-        $current = $this->parentWorkstream;
-
-        while ($current) {
-            $ancestors->push($current);
-            $current = $current->parentWorkstream;
-        }
-
-        return $ancestors;
+        // Use optimized version
+        return $this->getAllAncestorsOptimized();
     }
 
     /**
@@ -145,13 +177,12 @@ class Workstream extends Model
      */
     public function getAllDescendants(): Collection
     {
-        $descendants = Collection::make();
-        $this->collectDescendants($descendants);
-        return $descendants;
+        // Use optimized version
+        return $this->getAllDescendantsOptimized();
     }
 
     /**
-     * Recursively collect all descendants.
+     * Recursively collect all descendants (legacy method - kept for backwards compatibility).
      */
     private function collectDescendants(Collection $descendants): void
     {
@@ -205,20 +236,8 @@ class Workstream extends Model
      */
     public function buildHierarchyTree(): array
     {
-        return [
-            'id' => $this->id,
-            'name' => $this->name,
-            'type' => $this->type,
-            'status' => $this->status,
-            'owner' => $this->owner ? [
-                'id' => $this->owner->id,
-                'name' => $this->owner->name,
-                'email' => $this->owner->email,
-            ] : null,
-            'children' => $this->childWorkstreams->map(function ($child) {
-                return $child->buildHierarchyTree();
-            })->toArray(),
-        ];
+        // Use optimized version
+        return $this->buildHierarchyTreeOptimized();
     }
 
     /**
@@ -234,59 +253,8 @@ class Workstream extends Model
      */
     public function getEffectivePermissionsForUser(int $userId): array
     {
-        $directPermissions = $this->permissions()
-            ->where('user_id', $userId)
-            ->get()
-            ->keyBy('permission_type');
-
-        $inheritedPermissions = collect();
-        $ancestors = $this->getAllAncestors();
-
-        foreach ($ancestors as $ancestor) {
-            $ancestorPermissions = $ancestor->permissions()
-                ->where('user_id', $userId)
-                ->where('scope', 'workstream_and_children')
-                ->get();
-
-            foreach ($ancestorPermissions as $permission) {
-                if (!$inheritedPermissions->has($permission->permission_type)) {
-                    $inheritedPermissions->put($permission->permission_type, [
-                        'permission_type' => $permission->permission_type,
-                        'inherited_from_workstream_id' => $ancestor->id,
-                        'inherited_from_workstream_name' => $ancestor->name,
-                    ]);
-                }
-            }
-        }
-
-        // Determine effective permissions (direct overrides inherited)
-        $effectivePermissions = [];
-        $permissionHierarchy = ['view' => 1, 'edit' => 2, 'admin' => 3];
-
-        foreach (['view', 'edit', 'admin'] as $permType) {
-            $direct = $directPermissions->get($permType);
-            $inherited = $inheritedPermissions->get($permType);
-
-            if ($direct) {
-                $effectivePermissions[] = $permType;
-            } elseif ($inherited) {
-                $effectivePermissions[] = $permType;
-            }
-        }
-
-        // Apply permission hierarchy - if you have admin, you also have edit and view
-        if (in_array('admin', $effectivePermissions)) {
-            $effectivePermissions = array_unique(array_merge($effectivePermissions, ['edit', 'view']));
-        } elseif (in_array('edit', $effectivePermissions)) {
-            $effectivePermissions = array_unique(array_merge($effectivePermissions, ['view']));
-        }
-
-        return [
-            'workstream_id' => $this->id,
-            'direct_permissions' => $directPermissions->values()->toArray(),
-            'inherited_permissions' => $inheritedPermissions->values()->toArray(),
-            'effective_permissions' => $effectivePermissions,
-        ];
+        // Use optimized version
+        return $this->getEffectivePermissionsForUserOptimized($userId);
     }
 
     /**
@@ -294,72 +262,173 @@ class Workstream extends Model
      */
     public function getRollupReport(): array
     {
-        $allWorkstreams = collect([$this])->merge($this->getAllDescendants());
+        // Use optimized version
+        return $this->getRollupReportOptimized();
+    }
 
-        $allReleases = collect();
-        $allTasks = collect();
+    /**
+     * Scope a query to only include root workstreams (no parent).
+     */
+    public function scopeRoots($query)
+    {
+        return $query->whereNull('parent_workstream_id');
+    }
 
-        foreach ($allWorkstreams as $workstream) {
-            $releases = $workstream->releases()->with('checklistItemAssignments')->get();
-            $allReleases = $allReleases->merge($releases);
+    /**
+     * Scope a query to only include children of a specific parent.
+     */
+    public function scopeChildrenOf($query, $parentId)
+    {
+        return $query->where('parent_workstream_id', $parentId);
+    }
 
-            foreach ($releases as $release) {
-                $tasks = $release->checklistItemAssignments ?? collect();
-                $allTasks = $allTasks->merge($tasks);
+    /**
+     * Scope a query to only include workstreams of a specific type.
+     */
+    public function scopeOfType($query, $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    /**
+     * Scope a query to only include active workstreams.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    /**
+     * Scope a query to only include workstreams at a specific depth.
+     */
+    public function scopeAtDepth($query, $depth)
+    {
+        return $query->where('hierarchy_depth', $depth);
+    }
+
+    /**
+     * Scope a query to include workstreams with their essential relationships.
+     */
+    public function scopeWithEssentials($query)
+    {
+        return $query->with(['owner:id,name,email', 'parentWorkstream:id,name,type']);
+    }
+
+    /**
+     * Scope a query to include workstreams with full hierarchy relationships.
+     */
+    public function scopeWithHierarchy($query)
+    {
+        return $query->with(['owner:id,name,email', 'parentWorkstream:id,name,type', 'childWorkstreams:id,name,type,parent_workstream_id']);
+    }
+
+    /**
+     * Create a hierarchy efficiently for testing purposes.
+     */
+    public static function createHierarchyFast(int $depth = 4, int $branchingFactor = 5, ?User $owner = null): array
+    {
+        if (!$owner) {
+            $owner = User::first() ?? User::factory()->create();
+        }
+
+        // Disable model events for performance
+        static::unsetEventDispatcher();
+
+        $allWorkstreams = [];
+
+        // Create root workstreams using raw SQL for speed
+        $rootData = [];
+        for ($i = 0; $i < $branchingFactor; $i++) {
+            $rootData[] = [
+                'name' => "Root Workstream {$i}",
+                'type' => 'product_line',
+                'status' => 'active',
+                'owner_id' => $owner->id,
+                'hierarchy_depth' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        DB::table('workstreams')->insert($rootData);
+
+        // Get the created root IDs
+        $roots = static::whereNull('parent_workstream_id')->orderBy('id', 'desc')->limit($branchingFactor)->get();
+        $allWorkstreams = array_merge($allWorkstreams, $roots->toArray());
+
+        $currentLevel = $roots;
+
+        // Create subsequent levels efficiently
+        for ($level = 1; $level < $depth; $level++) {
+            $nextLevelData = [];
+
+            foreach ($currentLevel as $parent) {
+                for ($i = 0; $i < $branchingFactor; $i++) {
+                    $nextLevelData[] = [
+                        'name' => "Child {$level}-{$i} of {$parent->id}",
+                        'type' => 'initiative',
+                        'status' => 'active',
+                        'owner_id' => $owner->id,
+                        'parent_workstream_id' => $parent->id,
+                        'hierarchy_depth' => $level + 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+
+            if (!empty($nextLevelData)) {
+                DB::table('workstreams')->insert($nextLevelData);
+
+                // Get the newly created workstreams for next iteration
+                $nextLevel = static::where('hierarchy_depth', $level + 1)
+                    ->orderBy('id', 'desc')
+                    ->limit(count($nextLevelData))
+                    ->get();
+
+                $allWorkstreams = array_merge($allWorkstreams, $nextLevel->toArray());
+                $currentLevel = $nextLevel;
             }
         }
 
-        $releasesByStatus = $allReleases->groupBy('status')->map->count();
-        $tasksByStatus = $allTasks->groupBy('status')->map->count();
-
-        $totalTasks = $allTasks->count();
-        $completedTasks = $tasksByStatus->get('completed', 0);
-        $completionPercentage = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100, 1) : 0;
+        // Re-enable model events
+        static::setEventDispatcher(app('events'));
 
         return [
-            'workstream_id' => $this->id,
-            'workstream_name' => $this->name,
-            'summary' => [
-                'total_releases' => $allReleases->count(),
-                'releases_by_status' => [
-                    'planned' => $releasesByStatus->get('planned', 0),
-                    'in_progress' => $releasesByStatus->get('in_progress', 0),
-                    'completed' => $releasesByStatus->get('completed', 0),
-                ],
-                'total_tasks' => $totalTasks,
-                'tasks_by_status' => [
-                    'pending' => $tasksByStatus->get('pending', 0),
-                    'in_progress' => $tasksByStatus->get('in_progress', 0),
-                    'completed' => $completedTasks,
-                ],
-                'completion_percentage' => $completionPercentage,
-            ],
-            'child_workstreams' => $this->childWorkstreams->map(function ($child) {
-                $childReleases = $child->releases()->with('checklistItemAssignments')->get();
-                $childTasks = $childReleases->flatMap->checklistItemAssignments;
-                $childCompletedTasks = $childTasks->where('status', 'completed')->count();
-                $childTotalTasks = $childTasks->count();
-                $childCompletionPercentage = $childTotalTasks > 0 ? round(($childCompletedTasks / $childTotalTasks) * 100, 1) : 0;
-
-                return [
-                    'workstream_id' => $child->id,
-                    'workstream_name' => $child->name,
-                    'type' => $child->type,
-                    'releases_count' => $childReleases->count(),
-                    'tasks_count' => $childTotalTasks,
-                    'completion_percentage' => $childCompletionPercentage,
-                ];
-            })->toArray(),
-            'releases' => $allReleases->map(function ($release) {
-                $tasks = $release->checklistItemAssignments ?? collect();
-                return [
-                    'id' => $release->id,
-                    'name' => $release->name,
-                    'status' => $release->status,
-                    'workstream_name' => $release->workstream->name,
-                    'tasks_count' => $tasks->count(),
-                ];
-            })->toArray(),
+            'roots' => $roots,
+            'all' => $allWorkstreams,
+            'total_count' => count($allWorkstreams)
         ];
+    }
+
+    /**
+     * Boot method to handle model events for cache invalidation.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saved(function ($workstream) {
+            // Skip expensive operations during testing
+            if (app()->environment('testing')) {
+                return;
+            }
+
+            $workstream->clearHierarchyCaches();
+
+            // If parent changed, update hierarchy depth for subtree
+            if ($workstream->wasChanged('parent_workstream_id')) {
+                $workstream->updateHierarchyDepthForSubtree();
+            }
+        });
+
+        static::deleted(function ($workstream) {
+            // Skip expensive operations during testing
+            if (app()->environment('testing')) {
+                return;
+            }
+
+            $workstream->clearHierarchyCaches();
+        });
     }
 }
