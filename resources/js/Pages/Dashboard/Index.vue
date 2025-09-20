@@ -8,7 +8,7 @@
         <div class="flex justify-between">
           <div>
             <h1 class="text-3xl font-bold" style="color: #FAFAFA;">
-              Good morning, {{ user.name }}
+              {{ timeAwareGreeting }}, {{ user.name }}
             </h1>
             <p class="mt-2 text-lg" style="color: #A1A1AA;">Here's what needs your attention today</p>
           </div>
@@ -18,20 +18,54 @@
         </div>
       </div>
 
+      <!-- Pill Row for minimized components -->
+      <PillRow :pills="pills" @restore="restoreComponent" />
+
     <!-- Morning Brief -->
-      <MorningBrief v-if="morningBrief" :summary="morningBrief.summary" :highlights="morningBrief.highlights" />
+      <MinimizableComponent
+        v-if="morningBrief"
+        component-id="MorningBrief"
+        component-name="Morning Brief">
+        <MorningBrief :summary="morningBrief.summary" :highlights="morningBrief.highlights" />
+      </MinimizableComponent>
 
       <div class="grid grid-cols-2 gap-4">
         <!-- Top 3 Priorities -->
-        <TopPriorities :priorities="topPriorities" class=""/>
+        <MinimizableComponent
+          component-id="TopPriorities"
+          component-name="Top Priorities">
+          <TopPriorities :priorities="topPriorities" class=""/>
+        </MinimizableComponent>
 
         <!-- Quick Add Brain Dump -->
-        <BrainDump :config="quickAddConfig" class=""/>
+        <MinimizableComponent
+          component-id="BrainDump"
+          component-name="Brain Dump">
+          <BrainDump :config="quickAddConfig" class=""/>
+        </MinimizableComponent>
       </div>
+
+      <!-- End of Day Summary -->
+      <MinimizableComponent
+        v-if="shouldShowEndOfDaySummary"
+        component-id="EndOfDaySummary"
+        component-name="End of Day Summary">
+        <EndOfDaySummary
+          :completed-tasks="endOfDayData?.completedTasks || defaultEndOfDayData.completedTasks"
+          :meetings-attended="endOfDayData?.meetingsAttended || defaultEndOfDayData.meetingsAttended"
+          :key-decisions="endOfDayData?.keyDecisions || defaultEndOfDayData.keyDecisions"
+          :tomorrow-priorities="endOfDayData?.tomorrowPriorities || defaultEndOfDayData.tomorrowPriorities"
+          :encouraging-message="endOfDayData?.encouragingMessage || defaultEndOfDayData.encouragingMessage"
+        />
+      </MinimizableComponent>
 
 
       <!-- Workstreams Overview -->
-      <div v-if="workstreams && workstreams.length > 0" class="dashboard-card p-6">
+      <MinimizableComponent
+        v-if="workstreams && workstreams.length > 0"
+        component-id="Workstreams"
+        component-name="Workstreams">
+        <div class="dashboard-card p-6">
         <div class="flex items-center justify-between mb-6">
           <div class="flex items-center">
             <div class="w-1 h-8 rounded-full mr-4" style="background: #884DFF;"></div>
@@ -88,10 +122,15 @@
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </MinimizableComponent>
 
       <!-- Empty State for Workstreams -->
-      <div v-else class="dashboard-card p-6 text-center">
+      <MinimizableComponent
+        v-else
+        component-id="Workstreams"
+        component-name="Workstreams">
+        <div class="dashboard-card p-6 text-center">
         <div class="py-12">
           <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: #884DFF;">
             <span class="text-2xl">🏗️</span>
@@ -109,10 +148,15 @@
             <span>Create Your First Workstream</span>
           </button>
         </div>
-      </div>
+        </div>
+      </MinimizableComponent>
 
       <!-- Stakeholder Insights -->
-      <div v-if="stakeholderData" class="dark-card rounded-xl p-6 border border-dark-border">
+      <MinimizableComponent
+        v-if="stakeholderData"
+        component-id="Stakeholders"
+        component-name="Stakeholders">
+        <div class="dark-card rounded-xl p-6 border border-dark-border">
         <div class="flex items-center justify-between mb-6">
           <div class="flex items-center">
             <div class="w-1 h-8 bg-gradient-to-b from-purple-400 to-purple-600 rounded-full mr-4"></div>
@@ -222,18 +266,23 @@
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </MinimizableComponent>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, provide } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BrainDump from '@/Components/BrainDump.vue';
 import MorningBrief from '@/Components/MorningBrief.vue';
 import TopPriorities from '@/Components/TopPriorities.vue';
+import EndOfDaySummary from '@/Components/EndOfDaySummary.vue';
+import MinimizableComponent from '@/Components/MinimizableComponent.vue';
+import PillRow from '@/Components/PillRow.vue';
+import { useComponentMinimization } from '@/composables/useComponentMinimization';
 
 const props = defineProps({
   releases: Array,
@@ -243,7 +292,31 @@ const props = defineProps({
   user: Object,
   quickAddConfig: Object,
   morningBrief: Object,
+  endOfDayData: Object,
 });
+
+// Component minimization system
+const {
+  pills,
+  isMinimized,
+  canBeMinimized,
+  minimizeComponent,
+  restoreComponent,
+  getComponentAriaAttributes,
+  handleKeyboardEvent,
+  getPillAriaAttributes,
+  handlePillKeyboardEvent
+} = useComponentMinimization();
+
+// Provide minimization functions to child components
+provide('minimizeComponent', minimizeComponent);
+provide('restoreComponent', restoreComponent);
+provide('isMinimized', isMinimized);
+provide('canBeMinimized', canBeMinimized);
+provide('getComponentAriaAttributes', getComponentAriaAttributes);
+provide('handleKeyboardEvent', handleKeyboardEvent);
+provide('getPillAriaAttributes', getPillAriaAttributes);
+provide('handlePillKeyboardEvent', handlePillKeyboardEvent);
 
 
 const currentDate = computed(() => {
@@ -254,6 +327,48 @@ const currentDate = computed(() => {
     day: 'numeric'
   });
 });
+
+const timeAwareGreeting = computed(() => {
+  const now = new Date();
+  const hour = now.getHours();
+
+  if (hour >= 6 && hour < 12) {
+    return 'Good morning';
+  } else if (hour >= 12 && hour < 18) {
+    return 'Good afternoon';
+  } else {
+    return 'Good evening';
+  }
+});
+
+const shouldShowEndOfDaySummary = computed(() => {
+  const now = new Date();
+  const hour = now.getHours();
+  return hour >= 15; // 3:00 PM and later
+});
+
+const defaultEndOfDayData = computed(() => ({
+  completedTasks: [
+    'Completed user research interviews',
+    'Reviewed and approved design mockups',
+    'Sent project update to stakeholders'
+  ],
+  meetingsAttended: [
+    'Morning standup with development team',
+    'Client feedback session',
+    'Weekly planning meeting'
+  ],
+  keyDecisions: [
+    'Approved moving forward with prototype A',
+    'Scheduled additional user testing for next week'
+  ],
+  tomorrowPriorities: [
+    'Finalize feature specifications',
+    'Prepare presentation for stakeholder review',
+    'Follow up on pending approvals'
+  ],
+  encouragingMessage: "You've made great progress today! Focus on tomorrow's priorities to maintain momentum."
+}));
 
 
 const navigateToWorkstream = (workstreamId) => {
