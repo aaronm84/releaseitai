@@ -81,8 +81,13 @@ class WorkstreamsController extends Controller
             'status' => ['required', Rule::in(['draft', 'active', 'on_hold', 'completed', 'cancelled'])],
         ]);
 
+        // Ensure parent_workstream_id exists in validated array
+        if (!array_key_exists('parent_workstream_id', $validated)) {
+            $validated['parent_workstream_id'] = null;
+        }
+
         // Validate hierarchy rules
-        if ($validated['type'] === 'product_line' && $validated['parent_workstream_id']) {
+        if ($validated['type'] === 'product_line' && isset($validated['parent_workstream_id']) && $validated['parent_workstream_id']) {
             return redirect()->back()->withErrors([
                 'parent_workstream_id' => 'Product lines cannot have a parent workstream.'
             ]);
