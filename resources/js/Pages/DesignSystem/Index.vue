@@ -107,6 +107,31 @@
               <p><strong>Usage:</strong> Main application header with responsive navigation and user menu.</p>
             </div>
           </div>
+
+          <!-- MenuToggle Examples -->
+          <div class="space-y-4">
+            <h3 class="text-lg font-semibold" style="color: #FAFAFA;">Menu Toggle Button</h3>
+            <div class="flex items-center space-x-4 p-4 rounded-lg" style="background: rgba(9, 9, 11, 0.5); border: 1px solid #27272A;">
+              <MenuToggle />
+              <MenuToggle :size="32" />
+              <MenuToggle :size="20" />
+            </div>
+            <div class="text-sm space-y-2" style="color: #A1A1AA;">
+              <p><strong>Props:</strong></p>
+              <ul class="list-disc list-inside space-y-1 ml-4">
+                <li><code>modelValue</code> (Boolean): Whether menu is open (v-model support)</li>
+                <li><code>size</code> (Number): Icon size in pixels (default: 24)</li>
+                <li><code>labelOpen</code> (String): Aria label when closed</li>
+                <li><code>labelClose</code> (String): Aria label when open</li>
+              </ul>
+              <p><strong>Events:</strong></p>
+              <ul class="list-disc list-inside space-y-1 ml-4">
+                <li><code>toggle</code>: Emitted when button is clicked</li>
+                <li><code>update:modelValue</code>: For v-model support</li>
+              </ul>
+              <p><strong>Features:</strong> 2-line to X morphing animation, ADHD-friendly reduced motion support, brand focus styling.</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -570,6 +595,7 @@ import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import AppHeader from '@/Components/AppHeader.vue';
+import MenuToggle from '@/Components/MenuToggle.vue';
 import MorningBrief from '@/Components/MorningBrief.vue';
 import DarkCard from '@/Components/DarkCard.vue';
 import WorkstreamCard from '@/Components/WorkstreamCard.vue';

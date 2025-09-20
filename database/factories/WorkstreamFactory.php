@@ -22,7 +22,8 @@ class WorkstreamFactory extends Factory
             'type' => $this->faker->randomElement(['product_line', 'initiative', 'experiment']),
             'status' => $this->faker->randomElement(['draft', 'active', 'on_hold', 'completed', 'cancelled']),
             'owner_id' => \App\Models\User::factory(),
-            'parent_workstream_id' => null, // Will be set explicitly in tests when needed
+            'parent_workstream_id' => null,
+            'hierarchy_depth' => 1,
         ];
     }
 }

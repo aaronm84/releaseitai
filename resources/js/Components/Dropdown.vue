@@ -5,7 +5,7 @@
     </div>
 
     <!-- Full Screen Dropdown Overlay -->
-    <div v-show="open" class="fixed inset-0 z-40" @click="open = false"></div>
+    <div v-show="open" class="fixed top-0 left-0 right-0 bottom-0 z-40" @click="open = false"></div>
 
     <transition
       enter-active-class="transition ease-out duration-200"
@@ -19,10 +19,9 @@
         v-show="open"
         class="absolute z-50 mt-2 rounded-md shadow-lg"
         :class="[widthClass, alignmentClasses]"
-        style="display: none"
         @click="open = false"
       >
-        <div class="rounded-md ring-1 ring-black ring-opacity-5" :class="contentClasses">
+        <div class="rounded-md" :class="contentClasses" style="background: rgba(9, 9, 11, 0.98); border: 1px solid #27272A; backdrop-filter: blur(16px);">
           <slot name="content" />
         </div>
       </div>
@@ -44,7 +43,7 @@ const props = defineProps({
   },
   contentClasses: {
     type: String,
-    default: 'py-1 bg-white',
+    default: 'py-1',
   },
 });
 

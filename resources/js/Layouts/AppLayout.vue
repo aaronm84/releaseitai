@@ -29,10 +29,10 @@ const navigationItems = computed(() => [
     href: route('dashboard'),
     active: route().current('dashboard')
   },
-  {
-    name: 'Design System',
-    href: route('design-system'),
-    active: route().current('design-system')
-  }
+  // {
+  //   name: 'Design System',
+  //   href: route('design-system'),
+  //   active: route().current('design-system')
+  // }
 ]);
 </script>

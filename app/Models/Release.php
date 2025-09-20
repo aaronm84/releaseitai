@@ -19,6 +19,7 @@ class Release extends Model
      */
     protected $fillable = [
         'name',
+        'version',
         'description',
         'workstream_id',
         'target_date',

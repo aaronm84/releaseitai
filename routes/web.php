@@ -5,32 +5,33 @@ use App\Http\Controllers\WorkstreamsController;
 use App\Http\Controllers\ReleaseController;
 use App\Http\Controllers\StakeholderController;
 use App\Http\Controllers\DesignSystemController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
-// Simple login route for testing
-Route::get('/login', function () {
-    Auth::loginUsingId(1); // Login as user ID 1
-    return redirect('/');
-})->name('login');
+// Authentication Routes (Public)
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
+Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+Route::post('/register', [RegisterController::class, 'register']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// Auto-login route for testing
+// Root route - redirect to dashboard if authenticated, login if not
 Route::get('/', function () {
-    if (!Auth::check()) {
-        $user = App\Models\User::first();
-        if (!$user) {
-            // Create a default user if none exists
-            $user = App\Models\User::create([
-                'name' => 'Aaron Middleton',
-                'email' => 'aaronmiddleton@gmail.com',
-                'password' => Hash::make('Test123'),
-            ]);
-        }
-        Auth::login($user);
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
     }
-    return app(App\Http\Controllers\DashboardController::class)->index(request());
-})->name('dashboard');
+    return redirect()->route('login');
+});
+
+// Dashboard route (protected)
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware('auth')
+    ->name('dashboard');
+
+// Public routes (accessible without authentication)
+Route::get('/design-system', [DesignSystemController::class, 'index'])->name('design-system');
 
 Route::middleware('auth')->group(function () {
     Route::prefix('workstreams')->name('workstreams.')->group(function () {
@@ -53,11 +54,12 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('stakeholders')->name('stakeholders.')->group(function () {
         Route::get('/', [StakeholderController::class, 'index'])->name('index');
+        Route::get('/create', [StakeholderController::class, 'create'])->name('create');
+        Route::post('/', [StakeholderController::class, 'store'])->name('store');
         Route::get('/{stakeholder}', [StakeholderController::class, 'show'])->name('show');
+        Route::get('/{stakeholder}/edit', [StakeholderController::class, 'edit'])->name('edit');
         Route::put('/{stakeholder}', [StakeholderController::class, 'update'])->name('update');
+        Route::delete('/{stakeholder}', [StakeholderController::class, 'destroy'])->name('destroy');
         Route::patch('/{stakeholder}/contact', [StakeholderController::class, 'updateLastContact'])->name('update-contact');
     });
-
-
-    Route::get('/design-system', [DesignSystemController::class, 'index'])->name('design-system');
 });

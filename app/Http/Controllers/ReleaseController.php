@@ -378,6 +378,12 @@ class ReleaseController extends Controller
                 'role' => $participant->pivot->role ?? 'recipient',
                 'delivery_status' => 'pending',
             ]);
+
+            // Update last contact tracking for each participant
+            $participant->update([
+                'last_contact_at' => now(),
+                'last_contact_channel' => $request->channel,
+            ]);
         }
 
         return redirect()->back()->with('success', "Communication sent to {$participants->count()} stakeholders.");

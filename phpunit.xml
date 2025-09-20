@@ -32,13 +32,13 @@
         <env name="APP_DEBUG" value="true"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_DRIVER" value="array"/>
-        <env name="DB_CONNECTION" value="pgsql"/>
-        <env name="DB_HOST" value="ep-broad-cell-adfspeza-pooler.c-2.us-east-1.aws.neon.tech"/>
-        <env name="DB_PORT" value="5432"/>
-        <env name="DB_DATABASE" value="neondb"/>
-        <env name="DB_USERNAME" value="neondb_owner"/>
-        <env name="DB_PASSWORD" value="npg_2PRnm7MEeLHN"/>
-        <env name="DB_SSLMODE" value="require"/>
+        <env name="DB_CONNECTION" value="${TEST_DB_CONNECTION}"/>
+        <env name="DB_HOST" value="${TEST_DB_HOST}"/>
+        <env name="DB_PORT" value="${TEST_DB_PORT}"/>
+        <env name="DB_DATABASE" value="${TEST_DB_DATABASE}"/>
+        <env name="DB_USERNAME" value="${TEST_DB_USERNAME}"/>
+        <env name="DB_PASSWORD" value="${TEST_DB_PASSWORD}"/>
+        <env name="DB_SSLMODE" value="${TEST_DB_SSLMODE}"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

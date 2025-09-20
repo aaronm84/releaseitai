@@ -2,26 +2,28 @@
   <AppLayout>
     <Head :title="`${release.name} - Stakeholders`" />
 
-    <div class="space-y-6">
+    <div class="max-w-7xl mx-auto px-4 py-6 space-y-12" style="background: #090909; min-height: 100vh;">
       <!-- Header -->
-      <div class="dashboard-card rounded-lg p-6">
+      <div class="dashboard-card p-8">
         <div class="flex justify-between items-center">
           <div>
-            <h1 class="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            <h1 class="text-3xl font-bold" style="color: #FAFAFA;">
               👥 Stakeholder Management
             </h1>
-            <p class="text-gray-600 mt-2 text-lg">{{ release.name }}</p>
+            <p class="mt-2 text-lg" style="color: #A1A1AA;">{{ release.name }}</p>
           </div>
           <div class="flex space-x-3">
             <button
               @click="openAddStakeholderModal"
-              class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              class="px-4 py-2 rounded-lg transition-colors"
+              style="background: #884DFF; color: #FAFAFA; border-radius: 10px;"
             >
               ➕ Add Stakeholder
             </button>
             <button
               @click="openCommunicationModal"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              class="px-4 py-2 rounded-lg transition-colors"
+              style="background: #3B82F6; color: #FAFAFA; border-radius: 10px;"
             >
               📧 Send Update
             </button>
@@ -31,89 +33,91 @@
 
       <!-- Engagement Metrics -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="dashboard-card rounded-lg p-6 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+        <div class="dashboard-card p-6" style="background: rgba(136, 77, 255, 0.1); border: 1px solid rgba(136, 77, 255, 0.3);">
           <div class="flex items-center">
-            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span class="text-white text-xl">👥</span>
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center" style="background: #884DFF;">
+              <span class="text-xl" style="color: #FAFAFA;">👥</span>
             </div>
             <div class="ml-4">
-              <h3 class="text-lg font-bold text-purple-900">{{ engagementMetrics.total_stakeholders }}</h3>
-              <p class="text-sm text-purple-700">Total Stakeholders</p>
+              <h3 class="text-lg font-bold" style="color: rgba(136, 77, 255, 0.9);">{{ engagementMetrics.total_stakeholders }}</h3>
+              <p class="text-sm" style="color: rgba(136, 77, 255, 0.7);">Total Stakeholders</p>
             </div>
           </div>
         </div>
 
-        <div class="dashboard-card rounded-lg p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+        <div class="dashboard-card p-6" style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3);">
           <div class="flex items-center">
-            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-              <span class="text-white text-xl">📈</span>
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center" style="background: #22C55E;">
+              <span class="text-xl" style="color: #FAFAFA;">📈</span>
             </div>
             <div class="ml-4">
-              <h3 class="text-lg font-bold text-green-900">{{ engagementMetrics.response_rate }}%</h3>
-              <p class="text-sm text-green-700">Response Rate</p>
+              <h3 class="text-lg font-bold" style="color: rgba(34, 197, 94, 0.9);">{{ engagementMetrics.response_rate }}%</h3>
+              <p class="text-sm" style="color: rgba(34, 197, 94, 0.7);">Response Rate</p>
             </div>
           </div>
         </div>
 
-        <div class="dashboard-card rounded-lg p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+        <div class="dashboard-card p-6" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
           <div class="flex items-center">
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <span class="text-white text-xl">⏱️</span>
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center" style="background: #3B82F6;">
+              <span class="text-xl" style="color: #FAFAFA;">⏱️</span>
             </div>
             <div class="ml-4">
-              <h3 class="text-lg font-bold text-blue-900">{{ engagementMetrics.avg_response_time_hours }}h</h3>
-              <p class="text-sm text-blue-700">Avg Response Time</p>
+              <h3 class="text-lg font-bold" style="color: rgba(59, 130, 246, 0.9);">{{ engagementMetrics.avg_response_time_hours }}h</h3>
+              <p class="text-sm" style="color: rgba(59, 130, 246, 0.7);">Avg Response Time</p>
             </div>
           </div>
         </div>
 
-        <div class="dashboard-card rounded-lg p-6 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
+        <div class="dashboard-card p-6" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3);">
           <div class="flex items-center">
-            <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-              <span class="text-white text-xl">💬</span>
+            <div class="w-12 h-12 rounded-lg flex items-center justify-center" style="background: #F59E0B;">
+              <span class="text-xl" style="color: #FAFAFA;">💬</span>
             </div>
             <div class="ml-4">
-              <h3 class="text-lg font-bold text-orange-900">{{ engagementMetrics.recent_interactions }}</h3>
-              <p class="text-sm text-orange-700">Recent Interactions</p>
+              <h3 class="text-lg font-bold" style="color: rgba(245, 158, 11, 0.9);">{{ engagementMetrics.recent_interactions }}</h3>
+              <p class="text-sm" style="color: rgba(245, 158, 11, 0.7);">Recent Interactions</p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Stakeholders by Role -->
-      <div class="dashboard-card rounded-lg p-6">
+      <div class="dashboard-card p-6">
         <div class="flex items-center mb-6">
-          <div class="w-1 h-8 bg-gradient-to-b from-purple-500 to-indigo-500 rounded-full mr-4"></div>
-          <h2 class="text-xl font-bold text-gray-900">Stakeholders by Role</h2>
+          <div class="w-1 h-8 rounded-full mr-4" style="background: #884DFF;"></div>
+          <h2 class="text-xl font-bold" style="color: #FAFAFA;">Stakeholders by Role</h2>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div
             v-for="roleGroup in stakeholdersByRole"
             :key="roleGroup.role"
-            class="role-group bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-5 border border-gray-200"
+            class="rounded-xl p-5" style="background: rgba(136, 77, 255, 0.1); border: 1px solid rgba(136, 77, 255, 0.3);"
           >
             <div class="flex items-center justify-between mb-4">
-              <h3 class="font-bold text-gray-900 capitalize">{{ roleGroup.role.replace('_', ' ') }}</h3>
-              <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">{{ roleGroup.count }}</span>
+              <h3 class="font-bold capitalize" style="color: rgba(136, 77, 255, 0.9);">{{ roleGroup.role.replace('_', ' ') }}</h3>
+              <span class="text-xs px-2 py-1 rounded-full" style="background: rgba(136, 77, 255, 0.2); color: rgba(136, 77, 255, 0.8);">{{ roleGroup.count }}</span>
             </div>
 
             <div class="space-y-2">
               <div
                 v-for="stakeholder in roleGroup.stakeholders"
                 :key="stakeholder.id"
-                class="flex items-center p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+                class="flex items-center p-2 rounded-lg transition-colors"
+                style="background: rgba(9, 9, 11, 0.3); border: 1px solid #27272A;"
               >
-                <div class="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center mr-3">
-                  <span class="text-white text-xs font-bold">{{ stakeholder.name.charAt(0) }}</span>
+                <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3" style="background: #884DFF;">
+                  <span class="text-xs font-bold" style="color: #FAFAFA;">{{ stakeholder.name.charAt(0) }}</span>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 truncate">{{ stakeholder.name }}</p>
-                  <p class="text-xs text-gray-500 truncate">{{ stakeholder.email }}</p>
+                  <p class="text-sm font-medium truncate" style="color: #FAFAFA;">{{ stakeholder.name }}</p>
+                  <p class="text-xs truncate" style="color: #A1A1AA;">{{ stakeholder.email }}</p>
                 </div>
                 <button
                   @click="editStakeholder(stakeholder)"
-                  class="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  class="p-1 transition-colors"
+                  style="color: #A1A1AA;"
                 >
                   ⚙️
                 </button>
@@ -124,30 +128,31 @@
       </div>
 
       <!-- Recent Communications -->
-      <div class="dashboard-card rounded-lg p-6">
+      <div class="dashboard-card p-6">
         <div class="flex items-center justify-between mb-6">
           <div class="flex items-center">
-            <div class="w-1 h-8 bg-gradient-to-b from-blue-500 to-cyan-500 rounded-full mr-4"></div>
-            <h2 class="text-xl font-bold text-gray-900">Recent Communications</h2>
+            <div class="w-1 h-8 rounded-full mr-4" style="background: #884DFF;"></div>
+            <h2 class="text-xl font-bold" style="color: #FAFAFA;">Recent Communications</h2>
           </div>
           <button
             @click="openCommunicationModal"
-            class="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+            class="text-sm transition-colors"
+            style="color: #884DFF;"
           >
             View All →
           </button>
         </div>
 
-        <div class="space-y-4">
+        <div class="space-y-6">
           <div
             v-for="communication in recentCommunications"
             :key="communication.id"
-            class="communication-item p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200"
+            class="p-4 rounded-lg" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);"
           >
             <div class="flex items-center justify-between">
               <div class="flex-1">
-                <h4 class="font-semibold text-blue-900">{{ communication.subject }}</h4>
-                <div class="flex items-center space-x-4 mt-2 text-sm text-blue-700">
+                <h4 class="font-semibold" style="color: rgba(59, 130, 246, 0.9);">{{ communication.subject }}</h4>
+                <div class="flex items-center space-x-4 mt-2 text-sm" style="color: rgba(59, 130, 246, 0.7);">
                   <span>📧 {{ communication.channel }}</span>
                   <span>👥 {{ communication.participants_count }} recipients</span>
                   <span>✅ {{ communication.responded_count }} responded</span>
@@ -156,13 +161,14 @@
               </div>
               <div class="ml-4">
                 <div class="flex items-center space-x-2">
-                  <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div class="w-16 h-2 rounded-full overflow-hidden" style="background: rgba(39, 39, 42, 0.5);">
                     <div
-                      class="h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-300"
+                      class="h-full transition-all duration-300"
+                      style="background: #22C55E;"
                       :style="{ width: `${(communication.responded_count / communication.participants_count) * 100}%` }"
                     ></div>
                   </div>
-                  <span class="text-xs text-gray-600">
+                  <span class="text-xs" style="color: #A1A1AA;">
                     {{ Math.round((communication.responded_count / communication.participants_count) * 100) }}%
                   </span>
                 </div>
@@ -177,29 +183,31 @@
     <Teleport to="body">
       <div v-if="showAddStakeholderModal"
            style="position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: rgba(0, 0, 0, 0.75) !important; z-index: 999999 !important; display: flex !important; align-items: center !important; justify-content: center !important;">
-        <div style="background: white !important; padding: 30px !important; border-radius: 12px !important; max-width: 500px !important; width: 90% !important; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;">
-          <h3 style="font-size: 20px !important; font-weight: bold !important; color: #1f2937 !important; margin-bottom: 20px !important;">
+        <div style="background: #090909 !important; padding: 30px !important; border-radius: 12px !important; max-width: 500px !important; width: 90% !important; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important; border: 1px solid #27272A !important; backdrop-filter: blur(12px) !important;">
+          <h3 style="font-size: 20px !important; font-weight: bold !important; color: #FAFAFA !important; margin-bottom: 20px !important;">
             Add Stakeholder
           </h3>
 
           <form @submit.prevent="addStakeholder" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label class="block text-sm font-medium mb-1" style="color: #A1A1AA;">Email</label>
               <input
                 v-model="stakeholderForm.email"
                 type="email"
                 required
                 placeholder="stakeholder@company.com"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2"
+                style="background: rgba(9, 9, 11, 0.8); border: 1px solid #27272A; border-radius: 10px; color: #FAFAFA; backdrop-filter: blur(12px);"
               />
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <label class="block text-sm font-medium mb-1" style="color: #A1A1AA;">Role</label>
               <select
                 v-model="stakeholderForm.role"
                 required
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2"
+                style="background: rgba(9, 9, 11, 0.8); border: 1px solid #27272A; border-radius: 10px; color: #FAFAFA; backdrop-filter: blur(12px);"
               >
                 <option value="">Select Role</option>
                 <option value="owner">👑 Owner</option>
@@ -210,11 +218,12 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Notification Preference</label>
+              <label class="block text-sm font-medium mb-1" style="color: #A1A1AA;">Notification Preference</label>
               <select
                 v-model="stakeholderForm.notification_preference"
                 required
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                class="w-full px-3 py-2"
+                style="background: rgba(9, 9, 11, 0.8); border: 1px solid #27272A; border-radius: 10px; color: #FAFAFA; backdrop-filter: blur(12px);"
               >
                 <option value="email">📧 Email</option>
                 <option value="slack">💬 Slack</option>
@@ -226,13 +235,15 @@
               <button
                 type="button"
                 @click="closeAddStakeholderModal"
-                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                class="px-4 py-2 rounded-lg transition-colors"
+                style="background: rgba(9, 9, 11, 0.8); color: #A1A1AA; border: 1px solid #27272A; border-radius: 10px;"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                class="px-4 py-2 rounded-lg transition-colors"
+                style="background: #884DFF; color: #FAFAFA; border-radius: 10px;"
               >
                 Add Stakeholder
               </button>
@@ -246,19 +257,20 @@
     <Teleport to="body">
       <div v-if="showCommunicationModal"
            style="position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background: rgba(0, 0, 0, 0.75) !important; z-index: 999999 !important; display: flex !important; align-items: center !important; justify-content: center !important;">
-        <div style="background: white !important; padding: 30px !important; border-radius: 12px !important; max-width: 600px !important; width: 90% !important; max-height: 90vh !important; overflow-y: auto !important; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;">
-          <h3 style="font-size: 20px !important; font-weight: bold !important; color: #1f2937 !important; margin-bottom: 20px !important;">
+        <div style="background: #090909 !important; padding: 30px !important; border-radius: 12px !important; max-width: 600px !important; width: 90% !important; max-height: 90vh !important; overflow-y: auto !important; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important; border: 1px solid #27272A !important; backdrop-filter: blur(12px) !important;">
+          <h3 style="font-size: 20px !important; font-weight: bold !important; color: #FAFAFA !important; margin-bottom: 20px !important;">
             Send Communication
           </h3>
 
           <form @submit.prevent="sendCommunication" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Channel</label>
+                <label class="block text-sm font-medium mb-1" style="color: #A1A1AA;">Channel</label>
                 <select
                   v-model="communicationForm.channel"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  class="w-full px-3 py-2"
+                  style="background: rgba(9, 9, 11, 0.8); border: 1px solid #27272A; border-radius: 10px; color: #FAFAFA; backdrop-filter: blur(12px);"
                 >
                   <option value="email">📧 Email</option>
                   <option value="slack">💬 Slack</option>

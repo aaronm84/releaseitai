@@ -79,19 +79,25 @@ class DashboardController extends Controller
             'processingDelay' => 500, // 500ms delay for ADHD users
         ];
 
-        // Morning brief (placeholder for AI-generated content)
+        // Get stakeholder insights
+        $stakeholderData = $this->getStakeholderInsights($user);
+
+        // Morning brief (including stakeholder insights)
         $morningBrief = [
             'summary' => 'You have 3 active releases and 2 upcoming deadlines this week.',
             'highlights' => [
                 'Login Flow release is due in 2 days',
                 'Payment Integration planning meeting scheduled for tomorrow',
-                '5 stakeholder communications pending response',
+                $stakeholderData['needs_follow_up'] > 0
+                    ? "{$stakeholderData['needs_follow_up']} stakeholders need follow-up"
+                    : 'All stakeholder communications up to date',
             ],
         ];
 
         return Inertia::render('Dashboard/Index', [
             'topPriorities' => $topPriorities,
             'workstreams' => $workstreams,
+            'stakeholderData' => $stakeholderData,
             'user' => $user,
             'quickAddConfig' => $quickAddConfig,
             'morningBrief' => $morningBrief,
@@ -99,5 +105,81 @@ class DashboardController extends Controller
                 'user' => $user,
             ],
         ]);
+    }
+
+    private function getStakeholderInsights($user)
+    {
+        // Get all users except the current user (potential stakeholders)
+        $allStakeholders = User::where('id', '!=', $user->id)->get();
+
+        $totalStakeholders = $allStakeholders->count();
+        $needsFollowUp = 0;
+        $recentlyContacted = [];
+        $overdueContacts = [];
+
+        foreach ($allStakeholders as $stakeholder) {
+            // Calculate days since last contact
+            $daysSinceContact = $stakeholder->last_contact_at
+                ? $stakeholder->last_contact_at->diffInDays(now())
+                : null;
+
+            // Check if needs follow-up based on communication frequency
+            if ($this->stakeholderNeedsFollowUp($stakeholder, $daysSinceContact)) {
+                $needsFollowUp++;
+                $overdueContacts[] = [
+                    'id' => $stakeholder->id,
+                    'name' => $stakeholder->name,
+                    'days_overdue' => $daysSinceContact,
+                    'frequency' => $stakeholder->communication_frequency,
+                ];
+            }
+
+            // Track recently contacted (within last 7 days)
+            if ($daysSinceContact !== null && $daysSinceContact <= 7) {
+                $recentlyContacted[] = [
+                    'id' => $stakeholder->id,
+                    'name' => $stakeholder->name,
+                    'last_contact_at' => $stakeholder->last_contact_at,
+                    'channel' => $stakeholder->last_contact_channel,
+                ];
+            }
+        }
+
+        // Sort overdue contacts by days overdue (most overdue first)
+        usort($overdueContacts, function ($a, $b) {
+            return $b['days_overdue'] <=> $a['days_overdue'];
+        });
+
+        // Sort recently contacted by most recent first
+        usort($recentlyContacted, function ($a, $b) {
+            return $b['last_contact_at'] <=> $a['last_contact_at'];
+        });
+
+        return [
+            'total_stakeholders' => $totalStakeholders,
+            'needs_follow_up' => $needsFollowUp,
+            'recently_contacted' => array_slice($recentlyContacted, 0, 5), // Top 5 recent
+            'overdue_contacts' => array_slice($overdueContacts, 0, 5), // Top 5 overdue
+            'response_rate' => $totalStakeholders > 0 ? (($totalStakeholders - $needsFollowUp) / $totalStakeholders) * 100 : 100,
+        ];
+    }
+
+    private function stakeholderNeedsFollowUp($stakeholder, $daysSinceContact): bool
+    {
+        if (!$stakeholder->communication_frequency || !$daysSinceContact) {
+            return false;
+        }
+
+        $thresholds = [
+            'daily' => 1,
+            'weekly' => 7,
+            'biweekly' => 14,
+            'monthly' => 30,
+            'as_needed' => null, // No automatic follow-up needed
+        ];
+
+        $threshold = $thresholds[$stakeholder->communication_frequency] ?? null;
+
+        return $threshold && $daysSinceContact > $threshold;
     }
 }

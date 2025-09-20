@@ -18,7 +18,11 @@ createInertiaApp({
             .mount(el);
     },
     progress: {
-        color: '#3b82f6',
-        showSpinner: true,
+        // Conservative progress bar configuration to avoid overlay issues
+        color: '#884DFF',
+        showSpinner: false, // Disable spinner to prevent overlay issues
+        delay: 250,
+        includeCSS: true,
+        timeout: 2500
     },
 });

@@ -1,0 +1,86 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e6]:
+      - link "ReleaseIt.ai" [ref=e9] [cursor=pointer]:
+        - /url: http://localhost:8001/
+      - button [ref=e11]:
+        - img
+  - main [ref=e13]:
+    - generic [ref=e15]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - heading "Good morning, Aaron Middleton" [level=1] [ref=e19]
+          - paragraph [ref=e20]: Here's what needs your attention today
+        - generic [ref=e21]:
+          - button "🏗️ Manage Workstreams" [ref=e22]:
+            - generic [ref=e24]: 🏗️
+            - generic [ref=e25]: Manage Workstreams
+          - generic [ref=e26]: Friday, September 19, 2025
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - heading "Top 3 Priorities" [level=2] [ref=e29]
+          - generic [ref=e30]: Focus Mode
+        - generic [ref=e31]:
+          - generic [ref=e33]: 🎉
+          - paragraph [ref=e34]: No urgent priorities right now.
+          - paragraph [ref=e35]: Great job staying on top of things!
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - generic [ref=e39]:
+            - generic [ref=e41]: 🧠
+            - heading "Brain Dump" [level=2] [ref=e42]
+          - generic [ref=e43]:
+            - generic [ref=e44]: Press
+            - generic [ref=e45]: Ctrl+Enter
+            - generic [ref=e46]: to process
+        - generic [ref=e47]:
+          - textbox "Paste meeting notes, emails, or ideas..." [ref=e48]
+          - button "Process Content" [disabled] [ref=e50]
+      - generic [ref=e52]:
+        - generic [ref=e54]: 🏗️
+        - heading "No Workstreams Yet" [level=3] [ref=e55]
+        - paragraph [ref=e56]: Create your first workstream to organize your product releases
+        - button "🚀 Create Your First Workstream" [ref=e57]:
+          - generic [ref=e59]: 🚀
+          - generic [ref=e60]: Create Your First Workstream
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - generic [ref=e64]:
+            - generic [ref=e66]: 👥
+            - heading "Stakeholder Overview" [level=2] [ref=e67]
+          - button "View All →" [ref=e68]
+        - generic [ref=e69]:
+          - generic [ref=e70]:
+            - generic [ref=e71]:
+              - generic [ref=e73]: 👥
+              - generic [ref=e74]: "0"
+            - heading "Total Stakeholders" [level=3] [ref=e75]
+            - paragraph [ref=e76]: People in your network
+          - generic [ref=e77]:
+            - generic [ref=e78]:
+              - generic [ref=e80]: ⏰
+              - generic [ref=e81]: "0"
+            - heading "Need Follow-up" [level=3] [ref=e82]
+            - paragraph [ref=e83]: Overdue communications
+          - generic [ref=e84]:
+            - generic [ref=e85]:
+              - generic [ref=e87]: 📈
+              - generic [ref=e88]: 100%
+            - heading "Response Rate" [level=3] [ref=e89]
+            - paragraph [ref=e90]: Communication health
+      - generic [ref=e91]:
+        - generic [ref=e93]:
+          - generic [ref=e95]: 🌅
+          - heading "Morning Brief" [level=2] [ref=e96]
+        - generic [ref=e97]:
+          - paragraph [ref=e98]: You have 3 active releases and 2 upcoming deadlines this week.
+          - generic [ref=e99]:
+            - heading "Key Highlights:" [level=4] [ref=e100]
+            - list [ref=e101]:
+              - listitem [ref=e102]: Login Flow release is due in 2 days
+              - listitem [ref=e103]: Payment Integration planning meeting scheduled for tomorrow
+              - listitem [ref=e104]: All stakeholder communications up to date
+```

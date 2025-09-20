@@ -2,11 +2,17 @@
   <Link
     :href="href"
     :class="[
-      'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none',
+      'inline-flex items-center px-4 py-3 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none',
       active
-        ? 'border-primary-500 text-gray-900 focus:border-primary-700'
-        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:text-gray-700 focus:border-gray-300'
+        ? 'border-purple-500 focus:border-purple-400'
+        : 'border-transparent hover:border-purple-300 focus:border-purple-300'
     ]"
+    :style="{
+      color: active ? '#884DFF' : '#A1A1AA',
+      borderBottomColor: active ? '#884DFF' : 'transparent'
+    }"
+    @mouseover="handleMouseOver"
+    @mouseleave="handleMouseLeave"
   >
     <slot />
   </Link>
@@ -15,8 +21,20 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 
-defineProps({
+const props = defineProps({
   href: String,
   active: Boolean,
 });
+
+const handleMouseOver = (event) => {
+  if (!props.active) {
+    event.target.style.color = '#FAFAFA';
+  }
+};
+
+const handleMouseLeave = (event) => {
+  if (!props.active) {
+    event.target.style.color = '#A1A1AA';
+  }
+};
 </script>

@@ -24,6 +24,23 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'title',
+        'company',
+        'department',
+        'phone',
+        'slack_handle',
+        'teams_handle',
+        'preferred_communication_channel',
+        'communication_frequency',
+        'tags',
+        'stakeholder_notes',
+        'last_contact_at',
+        'last_contact_channel',
+        'influence_level',
+        'support_level',
+        'timezone',
+        'is_available',
+        'unavailable_until',
     ];
 
     /**
@@ -46,6 +63,10 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'tags' => 'array',
+            'last_contact_at' => 'datetime',
+            'is_available' => 'boolean',
+            'unavailable_until' => 'date',
         ];
     }
 

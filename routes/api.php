@@ -1,21 +1,36 @@
 <?php
 
 use App\Http\Controllers\Api\ApprovalRequestController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ChecklistAssignmentController;
 use App\Http\Controllers\Api\ChecklistDependencyController;
 use App\Http\Controllers\Api\CommunicationController;
+use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\ReleaseStakeholderController;
 use App\Http\Controllers\Api\StakeholderReleaseController;
 use App\Http\Controllers\Api\WorkstreamController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Authentication routes (public)
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+
+// Authenticated user routes
+Route::middleware('auth:sanctum')->group(function () {
+    // Authentication routes that require authentication
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
+    Route::put('/user', [AuthController::class, 'updateProfile']);
+    Route::put('/user/password', [AuthController::class, 'updatePassword']);
+});
 
 // All API routes require authentication
 Route::middleware('auth:sanctum')->group(function () {
+    // Content management routes
+    Route::apiResource('content', ContentController::class);
+    Route::post('content/{content}/reprocess', [ContentController::class, 'reprocess']);
+    Route::get('content/{content}/analysis', [ContentController::class, 'analysis']);
     // Release stakeholder management routes
     Route::prefix('releases/{release}')->group(function () {
         Route::get('stakeholders', [ReleaseStakeholderController::class, 'index']);

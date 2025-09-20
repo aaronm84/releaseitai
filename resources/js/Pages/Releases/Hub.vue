@@ -2,9 +2,9 @@
   <AppLayout>
     <Head :title="`${release.name} - Release Hub`" />
 
-    <div class="min-h-screen bg-dark-primary space-y-6">
+    <div class="max-w-7xl mx-auto px-4 py-6 space-y-12" style="background: #090909; min-height: 100vh;">
       <!-- Header Section -->
-      <div class="dark-card rounded-xl p-6 border border-dark-border">
+      <div class="dashboard-card p-8">
         <div class="flex justify-between items-start mb-6">
           <div class="flex-1">
             <div class="flex items-center mb-3">
@@ -14,37 +14,36 @@
                 'bg-blue-400': release.status === 'planned',
                 'bg-red-400': release.status === 'blocked'
               }"></div>
-              <h1 class="text-3xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+              <h1 class="text-3xl font-bold" style="color: #FAFAFA;">
                 {{ release.name }}
               </h1>
-              <div class="ml-4 dark-status-indicator" :class="{
-                'dark-status-normal': release.status === 'completed',
-                'dark-status-warning': release.status === 'in_progress',
-                'dark-status-normal': release.status === 'planned',
-                'dark-status-urgent': release.status === 'blocked'
+              <div class="ml-4 px-3 py-1 rounded-full text-xs font-medium" :style="{
+                background: release.status === 'completed' ? 'rgba(34, 197, 94, 0.2)' : release.status === 'in_progress' ? 'rgba(245, 158, 11, 0.2)' : release.status === 'planned' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                color: release.status === 'completed' ? '#22C55E' : release.status === 'in_progress' ? '#F59E0B' : release.status === 'planned' ? '#3B82F6' : '#EF4444',
+                border: release.status === 'completed' ? '1px solid rgba(34, 197, 94, 0.3)' : release.status === 'in_progress' ? '1px solid rgba(245, 158, 11, 0.3)' : release.status === 'planned' ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
               }">
                 {{ formatStatus(release.status) }}
               </div>
             </div>
-            <p class="text-gray-300 text-lg mb-4">{{ release.description || 'No description provided' }}</p>
+            <p class="text-lg mb-4" style="color: #A1A1AA;">{{ release.description || 'No description provided' }}</p>
             <div class="flex items-center space-x-6">
               <div class="flex items-center space-x-2">
-                <div class="w-5 h-5 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                <div class="w-5 h-5 rounded-lg flex items-center justify-center" style="background: rgba(136, 77, 255, 0.2);">
                   <span class="text-xs">📁</span>
                 </div>
-                <span class="text-gray-300 font-medium">{{ release.workstream?.name || 'No workstream' }}</span>
+                <span class="font-medium" style="color: #A1A1AA;">{{ release.workstream?.name || 'No workstream' }}</span>
               </div>
               <div class="flex items-center space-x-2">
-                <div class="w-5 h-5 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                <div class="w-5 h-5 rounded-lg flex items-center justify-center" style="background: rgba(136, 77, 255, 0.2);">
                   <span class="text-xs">📅</span>
                 </div>
-                <span class="text-gray-300 font-medium">Target: {{ formatDate(release.target_date) }}</span>
+                <span class="font-medium" style="color: #A1A1AA;">Target: {{ formatDate(release.target_date) }}</span>
               </div>
               <div class="flex items-center space-x-2">
-                <div class="w-5 h-5 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                <div class="w-5 h-5 rounded-lg flex items-center justify-center" style="background: rgba(136, 77, 255, 0.2);">
                   <span class="text-xs">⏱️</span>
                 </div>
-                <span class="text-gray-300 font-medium">{{ daysUntilTarget }} days remaining</span>
+                <span class="font-medium" style="color: #A1A1AA;">{{ daysUntilTarget }} days remaining</span>
               </div>
             </div>
           </div>
@@ -53,7 +52,8 @@
             <select
               v-model="currentStatus"
               @change="updateReleaseStatus"
-              class="bg-dark-secondary border border-dark-border text-white rounded-xl px-4 py-2 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+              class="px-4 py-2 rounded-xl"
+              style="background: rgba(9, 9, 11, 0.8); border: 1px solid #27272A; color: #FAFAFA; border-radius: 10px; backdrop-filter: blur(12px);"
             >
               <option value="planned">Planned</option>
               <option value="in_progress">In Progress</option>
@@ -63,14 +63,16 @@
             <!-- Quick Actions -->
             <a
               :href="`/releases/${release.id}/stakeholders`"
-              class="bg-blue-600 hover:bg-blue-700 px-4 py-2 text-white rounded-xl font-medium transition-all duration-300 inline-flex items-center space-x-2"
+              class="px-4 py-2 rounded-xl font-medium transition-all duration-300 inline-flex items-center space-x-2"
+              style="background: #3B82F6; color: #FAFAFA; border-radius: 10px;"
             >
               <span>👥</span>
               <span>Stakeholders</span>
             </a>
             <button
               @click="openCommunicationModal"
-              class="purple-gradient-button px-4 py-2 text-white rounded-xl font-medium transition-all duration-300"
+              class="px-4 py-2 rounded-xl font-medium transition-all duration-300"
+              style="background: #884DFF; color: #FAFAFA; border-radius: 10px;"
             >
               Quick Update
             </button>
@@ -80,12 +82,13 @@
         <!-- Progress Bar -->
         <div class="mb-4">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-medium text-gray-400">Overall Progress</span>
-            <span class="text-sm font-bold text-purple-400">{{ progressPercentage }}%</span>
+            <span class="text-sm font-medium" style="color: #A1A1AA;">Overall Progress</span>
+            <span class="text-sm font-bold" style="color: #884DFF;">{{ progressPercentage }}%</span>
           </div>
-          <div class="dark-progress-container w-full h-4">
+          <div class="w-full h-4 rounded-full" style="background: rgba(39, 39, 42, 0.5);">
             <div
-              class="dark-progress-bar h-4 rounded-full transition-all duration-500"
+              class="h-4 rounded-full transition-all duration-500"
+              style="background: #884DFF;"
               :style="{ width: `${progressPercentage}%` }"
             ></div>
           </div>
@@ -94,18 +97,18 @@
 
       <!-- Metrics Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="dark-card rounded-xl p-6 border border-dark-border">
+        <div class="dashboard-card p-6">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-gray-400 text-sm font-medium">Total Tasks</p>
-              <p class="text-2xl font-bold text-white">{{ release.tasks?.length || 0 }}</p>
+              <p class="text-sm font-medium" style="color: #A1A1AA;">Total Tasks</p>
+              <p class="text-2xl font-bold" style="color: #FAFAFA;">{{ release.tasks?.length || 0 }}</p>
             </div>
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: #3B82F6;">
               <span class="text-xl">📋</span>
             </div>
           </div>
         </div>
-        <div class="dark-card rounded-xl p-6 border border-dark-border">
+        <div class="dashboard-card p-6">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-400 text-sm font-medium">Completed</p>
@@ -116,7 +119,7 @@
             </div>
           </div>
         </div>
-        <div class="dark-card rounded-xl p-6 border border-dark-border">
+        <div class="dashboard-card p-6">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-400 text-sm font-medium">Blocked</p>
@@ -127,7 +130,7 @@
             </div>
           </div>
         </div>
-        <div class="dark-card rounded-xl p-6 border border-dark-border">
+        <div class="dashboard-card p-6">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-gray-400 text-sm font-medium">Days Left</p>
@@ -147,10 +150,10 @@
       <!-- Main Content Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Left Column: Checklist & Tasks -->
-        <div class="lg:col-span-2 space-y-6">
+        <div class="lg:col-span-2 space-y-8">
 
           <!-- Dynamic Checklist -->
-          <div class="dark-card rounded-xl p-6 border border-dark-border">
+          <div class="dashboard-card p-6">
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center">
                 <div class="w-1 h-8 bg-gradient-to-b from-purple-400 to-purple-600 rounded-full mr-4"></div>
@@ -167,7 +170,7 @@
               </button>
             </div>
 
-            <div class="space-y-3">
+            <div class="space-y-4">
               <div
                 v-for="(item, index) in checklistTemplate"
                 :key="index"
@@ -209,7 +212,7 @@
           </div>
 
           <!-- Task Management -->
-          <div class="dark-card rounded-xl p-6 border border-dark-border">
+          <div class="dashboard-card p-6">
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center">
                 <div class="w-1 h-8 bg-gradient-to-b from-blue-400 to-blue-600 rounded-full mr-4"></div>
@@ -242,7 +245,9 @@
                   type="checkbox"
                   v-model="selectedTasks"
                   :value="task.id"
-                  class="mr-4 w-4 h-4 rounded bg-dark-secondary border-gray-500 text-purple-500 focus:ring-purple-500 focus:ring-offset-0"
+                  class="mr-4 w-4 h-4 rounded bg-dark-secondary border-gray-500 text-purple-500"
+                  style="box-shadow: 0 0 0 2px #8B5CF6 !important; outline: none !important;"
+                  @focus="$event.target.style.boxShadow = '0 0 0 2px #8B5CF6'"
                 >
                 <div class="flex-1">
                   <div class="flex items-center mb-2">
@@ -296,7 +301,7 @@
         </div>
 
         <!-- Right Column: Communications & Activity -->
-        <div class="space-y-6">
+        <div class="space-y-8">
 
           <!-- Blockers & Risks -->
           <div v-if="blockedTasksCount > 0" class="dark-card rounded-xl p-6 border border-red-500/30 bg-red-500/5">
@@ -326,7 +331,7 @@
           </div>
 
           <!-- Stakeholder Communications -->
-          <div class="dark-card rounded-xl p-6 border border-dark-border">
+          <div class="dashboard-card p-6">
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center">
                 <div class="w-1 h-8 bg-gradient-to-b from-green-400 to-green-600 rounded-full mr-4"></div>
@@ -340,7 +345,7 @@
               </button>
             </div>
 
-            <div class="space-y-4">
+            <div class="space-y-6">
               <div
                 v-for="comm in release.communications?.slice(0, 5)"
                 :key="comm.id"
@@ -367,13 +372,13 @@
           </div>
 
           <!-- Recent Activity -->
-          <div class="dark-card rounded-xl p-6 border border-dark-border">
+          <div class="dashboard-card p-6">
             <div class="flex items-center mb-6">
               <div class="w-1 h-8 bg-gradient-to-b from-purple-400 to-purple-600 rounded-full mr-4"></div>
               <h3 class="text-lg font-bold text-white">Recent Activity</h3>
             </div>
 
-            <div class="space-y-4">
+            <div class="space-y-6">
               <div
                 v-for="activity in recentActivity"
                 :key="activity.id"
