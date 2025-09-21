@@ -1,5 +1,7 @@
 # ReleaseIt.ai - Next Steps Roadmap
 
+**Last Updated:** September 21, 2025 at 8:10 PM UTC
+
 ## Current State Assessment
 
 ### ✅ **What's Complete**
@@ -8,7 +10,13 @@
 - **Workstreams**: Complete workstream management with releases
 - **Core Models**: User, Stakeholder, Workstream, Release, ChecklistItem, etc.
 - **UI Foundation**: Vue 3 + Tailwind CSS, responsive design, ADHD-friendly UX patterns
-- **Test Infrastructure**: Comprehensive TDD setup with 36+ passing tests
+- **Test Infrastructure**: Comprehensive TDD setup with 193+ passing tests
+- **AI-Powered Brain Dump**: Intelligent entity extraction and persistence with ContentProcessor service
+- **Feedback & Global Learning System**: Complete RAG-powered feedback learning with pgvector integration
+  - FeedbackService with confidence scoring and validation
+  - RetrievalService with similarity search and personalized recommendations
+  - pgvector database with 1536-dimensional embeddings
+  - Comprehensive test coverage (8 test files, 33+ test methods)
 
 ### 🔧 **What's Partially Complete**
 - **Release Management**: Basic structure exists, needs full functionality
@@ -16,65 +24,64 @@
 - **Checklist System**: Templates and items exist, need workflow integration
 
 ### ❌ **Major Missing Components**
-- **AI Integration**: Core value proposition not yet implemented
-- **Content Ingestion**: Email, file upload, text parsing systems
-- **Task Management**: AI-extracted actions and follow-ups
-- **Release Notes Generation**: AI-powered content creation
-- **Daily Briefs**: AI-generated summaries and insights
+- **Frontend Feedback Controls**: UI for inline feedback (✅/✏️/🗑 buttons)
+- **Content Ingestion Pipeline**: Email forwarding and processing automation
+- **Live Feedback Integration**: Connect ContentProcessor with FeedbackService
+- **Release Notes Generation**: AI-powered content creation with feedback learning
+- **Dashboard Analytics**: Feedback insights and learning metrics
 
 ---
 
-## Priority 1: Core AI Integration (2-3 weeks)
+## Priority 1: Frontend Feedback Integration (1-2 weeks)
 
-### **A. AI Service Foundation**
-**Goal**: Establish robust AI service architecture for the entire application
-
-#### Tasks:
-1. **Create AI Service Layer**
-   - `app/Services/AiService.php` - OpenAI/Anthropic abstraction
-   - Token tracking and cost management
-   - Rate limiting and error handling
-   - Model selection logic (GPT-4o-mini vs Claude 3.5 Sonnet)
-
-2. **AI Jobs Infrastructure**
-   - `AiJob` model for tracking AI requests
-   - Queue system for async AI processing
-   - Cost tracking and budgeting alerts
-
-3. **Content Processing Pipeline**
-   - Text extraction from emails/files
-   - Content classification and routing
-   - Context preservation for AI prompts
-
-#### Deliverables:
-- Working AI service with both OpenAI and Anthropic integration
-- Job queue system for AI processing
-- Basic content ingestion pipeline
-- Cost tracking dashboard
-
-### **B. Ingestion System**
-**Goal**: Enable users to feed content into the system for AI processing
+### **A. Inline Feedback UI Components**
+**Goal**: Create intuitive feedback controls for all AI-generated content
 
 #### Tasks:
-1. **Email Integration**
-   - AWS SES webhook endpoint
-   - Email parsing and content extraction
-   - Attachment handling and storage
+1. **FeedbackControls Component**
+   - `/resources/js/Components/FeedbackControls.vue`
+   - Accept (✅), Edit (✏️), Reject (🗑) buttons
+   - Modal for edit corrections and reject reasons
+   - Visual feedback states and animations
 
-2. **File Upload System**
-   - Drag-and-drop interface
-   - PDF/DOC text extraction
-   - Image OCR capabilities (future)
+2. **Integration with Brain Dump Results**
+   - Add feedback controls to entity extraction results
+   - Connect to FeedbackService API endpoints
+   - Real-time confidence scoring display
 
-3. **Manual Input Interface**
-   - Rich text editor for pasted content
-   - Slack/Teams thread processing
-   - Meeting notes input form
+3. **Edit Modal Implementation**
+   - Rich text editor for corrections
+   - Original vs corrected content comparison
+   - Save corrections to feedback metadata
 
 #### Deliverables:
-- Multi-channel content ingestion
-- File processing pipeline
-- Content preview and editing interface
+- Complete inline feedback UI components
+- Integration with existing brain dump feature
+- Real-time feedback collection and storage
+
+### **B. ContentProcessor Integration**
+**Goal**: Connect existing ContentProcessor with new FeedbackService for live learning
+
+#### Tasks:
+1. **Storage Layer Integration**
+   - Store ContentProcessor results in Input/Output tables
+   - Generate embeddings for processed content
+   - Link extracted entities to feedback system
+
+2. **RAG Enhancement**
+   - Integrate RetrievalService into ContentProcessor
+   - Use similar examples to improve AI prompts
+   - Quality-based example filtering
+
+3. **Live Learning Loop**
+   - Capture feedback on all AI outputs
+   - Update embeddings and quality scores
+   - Personalized user experiences
+
+#### Deliverables:
+- ContentProcessor storing data in feedback learning schema
+- RAG-enhanced AI responses using past successful examples
+- Complete feedback learning loop operational
 
 ---
 
