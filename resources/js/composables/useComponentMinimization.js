@@ -4,6 +4,9 @@ export function useComponentMinimization() {
   // State for which components are minimized
   const minimizedComponents = ref(new Set())
 
+  // Dynamic component configurations (runtime data)
+  const dynamicConfigs = ref({})
+
   // Component configurations for pills
   const componentConfigs = {
     'MorningBrief': {
@@ -77,12 +80,27 @@ export function useComponentMinimization() {
     return { success: true }
   }
 
+  // Register dynamic component configuration
+  const registerComponent = (componentId, config) => {
+    dynamicConfigs.value[componentId] = config
+  }
+
   // Get pill data for minimized components
   const pills = computed(() => {
-    return Array.from(minimizedComponents.value).map(componentId => ({
-      id: componentId,
-      ...componentConfigs[componentId]
-    }))
+    return Array.from(minimizedComponents.value).map(componentId => {
+      // Use dynamic config if available, otherwise fall back to static config
+      const config = dynamicConfigs.value[componentId] || componentConfigs[componentId] || {
+        name: componentId,
+        icon: '📄',
+        color: '#6B7280',
+        description: `Restore ${componentId} component`
+      }
+
+      return {
+        id: componentId,
+        ...config
+      }
+    })
   })
 
   // Get pill row layout for different screen sizes
@@ -261,6 +279,7 @@ export function useComponentMinimization() {
     isExpanded,
     minimizeComponent,
     restoreComponent,
+    registerComponent,
 
     // Advanced functions
     minimizeWithAnimation,

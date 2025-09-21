@@ -1,6 +1,8 @@
 <template>
   <Link
     :href="href"
+    :method="method"
+    :as="as"
     :class="[
       'inline-flex items-center px-4 py-3 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none',
       active
@@ -23,6 +25,8 @@ import { Link } from '@inertiajs/vue3';
 
 const props = defineProps({
   href: String,
+  method: String,
+  as: String,
   active: Boolean,
 });
 

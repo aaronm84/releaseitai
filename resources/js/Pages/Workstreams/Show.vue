@@ -370,63 +370,11 @@ const props = defineProps({
 });
 
 // Reactive data
-const stakeholders = ref([
-  // Mock data for demonstration
-  {
-    id: 1,
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@company.com',
-    role: 'Product Manager',
-    involvement_level: 'High'
-  },
-  {
-    id: 2,
-    name: 'Mike Chen',
-    email: 'mike.chen@company.com',
-    role: 'Tech Lead',
-    involvement_level: 'High'
-  }
-]);
+const stakeholders = ref([]);
 
-const documents = ref([
-  // Mock data for demonstration
-  {
-    id: 1,
-    name: 'Project Requirements.pdf',
-    type: 'PDF',
-    size: 2048576,
-    uploaded_at: '2024-01-15',
-    url: '/storage/documents/project-requirements.pdf'
-  },
-  {
-    id: 2,
-    name: 'Technical Spec.docx',
-    type: 'Word',
-    size: 1048576,
-    uploaded_at: '2024-01-14',
-    url: '/storage/documents/technical-spec.docx'
-  }
-]);
+const documents = ref([]);
 
-const communications = ref([
-  // Mock data for demonstration
-  {
-    id: 1,
-    type: 'meeting',
-    subject: 'Kickoff Meeting',
-    summary: 'Initial project planning and team introductions. Discussed timelines and deliverables.',
-    date: '2024-01-10',
-    participants: ['Sarah Johnson', 'Mike Chen', 'Team Lead']
-  },
-  {
-    id: 2,
-    type: 'email',
-    subject: 'Requirements Clarification',
-    summary: 'Follow-up on user story details and acceptance criteria.',
-    date: '2024-01-12',
-    participants: ['Sarah Johnson', 'Product Owner']
-  }
-]);
+const communications = ref([]);
 
 // Modal states
 const showAddStakeholder = ref(false);

@@ -82,17 +82,9 @@ class DashboardController extends Controller
         // Get stakeholder insights
         $stakeholderData = $this->getStakeholderInsights($user);
 
-        // Morning brief (including stakeholder insights)
-        $morningBrief = [
-            'summary' => 'You have 3 active releases and 2 upcoming deadlines this week.',
-            'highlights' => [
-                'Login Flow release is due in 2 days',
-                'Payment Integration planning meeting scheduled for tomorrow',
-                $stakeholderData['needs_follow_up'] > 0
-                    ? "{$stakeholderData['needs_follow_up']} stakeholders need follow-up"
-                    : 'All stakeholder communications up to date',
-            ],
-        ];
+        // Time-aware brief (morning brief only during morning hours)
+        $timeAwareBrief = $this->generateTimeAwareBrief($topPriorities, $workstreams, $stakeholderData);
+
 
         return Inertia::render('Dashboard/Index', [
             'topPriorities' => $topPriorities,
@@ -100,7 +92,7 @@ class DashboardController extends Controller
             'stakeholderData' => $stakeholderData,
             'user' => $user,
             'quickAddConfig' => $quickAddConfig,
-            'morningBrief' => $morningBrief,
+            'morningBrief' => $timeAwareBrief,
             'auth' => [
                 'user' => $user,
             ],
@@ -182,4 +174,118 @@ class DashboardController extends Controller
 
         return $threshold && $daysSinceContact > $threshold;
     }
+
+    private function generateTimeAwareBrief($topPriorities, $workstreams, $stakeholderData)
+    {
+        $user = Auth::user();
+        $userTimezone = $user->timezone ?? config('app.timezone');
+        $hour = now()->setTimezone($userTimezone)->hour;
+
+        $briefData = $this->generateBriefContent($topPriorities, $workstreams, $stakeholderData);
+
+        // Determine title and adjust content based on time of day
+        if ($hour >= 6 && $hour < 12) {
+            $briefData['title'] = 'Morning Brief';
+            $briefData['icon'] = '🌅';
+        } elseif ($hour >= 12 && $hour < 17) {
+            $briefData['title'] = 'Afternoon Update';
+            $briefData['icon'] = '☀️';
+        } else {
+            // Evening/Night hours (17:00-05:59)
+            $briefData['title'] = 'Evening Review';
+            $briefData['icon'] = '🌆';
+
+            // Add end-of-day context to evening content
+            $briefData = $this->addEveningContext($briefData);
+        }
+
+        return $briefData;
+    }
+
+    private function generateBriefContent($topPriorities, $workstreams, $stakeholderData)
+    {
+        $activeReleases = 0;
+        $upcomingDeadlines = 0;
+        $highlights = [];
+
+        // Count active releases across all workstreams
+        foreach ($workstreams as $workstream) {
+            $activeReleases += $workstream['active_releases_count'];
+        }
+
+        // Count upcoming deadlines (releases due in next 7 days)
+        foreach ($topPriorities as $priority) {
+            if ($priority['due_in_days'] <= 7) {
+                $upcomingDeadlines++;
+            }
+        }
+
+        // Generate summary
+        if ($activeReleases === 0 && $workstreams->count() === 0) {
+            $summary = "Welcome to ReleaseIt! Ready to create your first workstream and start managing releases.";
+        } elseif ($activeReleases === 0) {
+            $summary = "No active releases today. Perfect time to plan your next release or review completed work.";
+        } else {
+            $workstreamText = $workstreams->count() === 1 ? 'workstream' : 'workstreams';
+            $releaseText = $activeReleases === 1 ? 'active release' : 'active releases';
+            $deadlineText = $upcomingDeadlines === 0 ? 'no upcoming deadlines' :
+                ($upcomingDeadlines === 1 ? '1 upcoming deadline' : "{$upcomingDeadlines} upcoming deadlines");
+
+            $summary = "You have {$activeReleases} {$releaseText} across {$workstreams->count()} {$workstreamText} with {$deadlineText} this week.";
+        }
+
+        // Generate highlights
+        if ($topPriorities->count() > 0) {
+            $firstPriority = $topPriorities->first();
+            if ($firstPriority['due_in_days'] === 0) {
+                $highlights[] = "🔴 {$firstPriority['name']} is due today";
+            } elseif ($firstPriority['due_in_days'] === 1) {
+                $highlights[] = "🟡 {$firstPriority['name']} is due tomorrow";
+            } elseif ($firstPriority['due_in_days'] <= 7) {
+                $highlights[] = "📅 {$firstPriority['name']} is due in {$firstPriority['due_in_days']} days";
+            }
+        }
+
+        // Add workstream progress highlight
+        if ($workstreams->count() > 0) {
+            $avgCompletion = $workstreams->avg('completion_percentage');
+            if ($avgCompletion >= 80) {
+                $highlights[] = "🎉 Your workstreams are " . round($avgCompletion) . "% complete on average";
+            } elseif ($avgCompletion >= 50) {
+                $highlights[] = "📈 Your workstreams are " . round($avgCompletion) . "% complete on average";
+            }
+        }
+
+        // Add stakeholder highlight
+        if ($stakeholderData['needs_follow_up'] > 0) {
+            $stakeholderText = $stakeholderData['needs_follow_up'] === 1 ? 'stakeholder needs' : 'stakeholders need';
+            $highlights[] = "💬 {$stakeholderData['needs_follow_up']} {$stakeholderText} follow-up";
+        } elseif ($stakeholderData['total_stakeholders'] > 0) {
+            $highlights[] = "✅ All stakeholder communications up to date";
+        }
+
+        // If no highlights, add encouraging message
+        if (empty($highlights)) {
+            $highlights[] = "Ready to tackle today's challenges!";
+        }
+
+        return [
+            'summary' => $summary,
+            'highlights' => $highlights,
+        ];
+    }
+
+    private function addEveningContext($briefData)
+    {
+        // Add evening-specific highlights
+        $eveningHighlights = [
+            "🎯 Review today's progress and plan for tomorrow",
+        ];
+
+        // Prepend evening context to existing highlights
+        $briefData['highlights'] = array_merge($eveningHighlights, $briefData['highlights']);
+
+        return $briefData;
+    }
+
 }

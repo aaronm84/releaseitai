@@ -4,7 +4,7 @@
       <div class="w-1 h-8 bg-gradient-to-b from-purple-400 to-purple-600 rounded-full mr-4"></div>
       <div class="flex items-center space-x-3">
         <div class="w-8 h-8 bg-purple-500/20 rounded-xl flex items-center justify-center">
-          <span class="text-lg">🌅</span>
+          <span class="text-lg">{{ icon || '🌅' }}</span>
         </div>
         <h2 class="text-xl font-bold" style="color: #FAFAFA;">{{ title }}</h2>
       </div>
@@ -28,6 +28,10 @@ defineProps({
   title: {
     type: String,
     default: 'Morning Brief'
+  },
+  icon: {
+    type: String,
+    default: '🌅'
   },
   summary: {
     type: String,

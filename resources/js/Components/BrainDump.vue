@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard-card p-6">
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex justify-between items-center mb-6" style="margin-bottom: 12px !important;">
       <div class="flex items-center">
         <div class="w-1 h-8 rounded-full mr-4" style="background: #884DFF;"></div>
         <div class="flex items-center space-x-3">
@@ -10,19 +10,32 @@
           <h2 class="text-xl font-bold" style="color: #FAFAFA;">Brain Dump</h2>
         </div>
       </div>
-      <div class="flex items-center space-x-2">
-        <span class="text-sm" style="color: #A1A1AA;">Press</span>
-        <kbd class="px-3 py-1 rounded-lg text-xs font-semibold shadow-sm" style="background: rgba(9, 9, 11, 0.8); border: 1px solid #27272A; color: #A1A1AA;">Ctrl+Enter</kbd>
-        <span class="text-sm" style="color: #A1A1AA;">to process</span>
+      <div class="flex items-center space-x-4">
+        <button
+          @click="viewHistory"
+          class="text-sm transition-colors flex items-center space-x-1"
+          style="color: #884DFF;"
+          title="View your brain dump history"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>History</span>
+        </button>
+        <div class="flex items-center space-x-2">
+          <span class="text-sm" style="color: #A1A1AA;">Press</span>
+          <kbd class="px-3 py-1 rounded-lg text-xs font-semibold shadow-sm" style="background: rgba(9, 9, 11, 0.8); border: 1px solid #27272A; color: #A1A1AA;">Ctrl+Enter</kbd>
+          <span class="text-sm" style="color: #A1A1AA;">to process</span>
+        </div>
       </div>
     </div>
-    <div class="space-y-4">
+    <div class="space-y-6">
       <textarea
         v-model="quickAddContent"
         @input="handleQuickAddInput"
         @keydown="handleKeyDown"
         :placeholder="config.placeholder"
-        class="w-full p-5 rounded-xl resize-none transition-all duration-300"
+        class="w-full p-6 rounded-xl resize-none transition-all duration-300"
         :style="{
           background: isProcessing ? 'rgba(136, 77, 255, 0.05)' : 'rgba(9, 9, 11, 0.8)',
           borderColor: isProcessing ? '#884DFF' : '#27272A',
@@ -175,47 +188,67 @@ const processContent = async () => {
   isProcessing.value = true
 
   try {
-    // Simulate AI processing for now since we don't have the backend endpoint yet
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Use Inertia router for proper authentication and CSRF handling
+    const response = await fetch('/api/brain-dump/process', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        content: quickAddContent.value
+      })
+    })
 
-    // Mock extracted items based on content
-    const content = quickAddContent.value.toLowerCase()
-    const mockItems = {
-      tasks: [],
-      meetings: [],
-      decisions: []
+    const result = await response.json()
+
+    if (!response.ok) {
+      if (response.status === 422 && result.errors) {
+        const firstError = Object.values(result.errors)[0][0]
+        throw new Error(firstError)
+      }
+      throw new Error(result.message || 'Failed to process content')
     }
 
-    if (content.includes('meeting') || content.includes('call')) {
-      mockItems.meetings.push({ title: 'Follow-up meeting', date: 'TBD' })
+    if (result.success) {
+      // Set the extracted items from the API response
+      extractedItems.value = result.data
+      showSuccess.value = true
+
+      console.log('Content processed successfully!', result)
+
+      // Clear after 5 seconds (longer to see results)
+      setTimeout(() => {
+        console.log('Clearing brain dump...')
+        quickAddContent.value = ''
+        extractedItems.value = null
+        showSuccess.value = false
+        localStorage.removeItem('braindump_content')
+      }, 5000)
+    } else {
+      throw new Error(result.message || 'Processing failed')
     }
-
-    if (content.includes('task') || content.includes('todo') || content.includes('need to')) {
-      mockItems.tasks.push({ title: 'Extracted task from brain dump', priority: 'medium' })
-    }
-
-    if (content.includes('decide') || content.includes('decision')) {
-      mockItems.decisions.push({ item: 'Decision point identified' })
-    }
-
-    extractedItems.value = mockItems
-    showSuccess.value = true
-
-    // Show success message
-    console.log('Content processed successfully!', mockItems)
-
-    // Clear after 5 seconds (longer to see results)
-    setTimeout(() => {
-      console.log('Clearing brain dump...')
-      quickAddContent.value = ''
-      extractedItems.value = null
-      showSuccess.value = false
-      localStorage.removeItem('braindump_content')
-    }, 5000)
 
   } catch (error) {
-    console.error('Error processing quick add:', error)
-    alert('Error processing content. Please try again.')
+    console.error('Error processing brain dump:', error)
+
+    // Show user-friendly error message
+    let errorMessage = 'Error processing content. Please try again.'
+
+    if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+      errorMessage = 'Please log in to process content.'
+    } else if (error.message.includes('422') || error.message.includes('validation')) {
+      errorMessage = 'Please check your input and try again.'
+    } else if (error.message.includes('429')) {
+      errorMessage = 'Too many requests. Please wait a moment and try again.'
+    } else if (error.message.includes('503') || error.message.includes('AI processing')) {
+      errorMessage = 'AI service is temporarily unavailable. Please try again later.'
+    }
+
+    alert(errorMessage)
   } finally {
     isProcessing.value = false
   }
@@ -236,6 +269,10 @@ const addToExistingRelease = () => {
       extracted_items: extractedItems.value,
     }
   })
+}
+
+const viewHistory = () => {
+  router.visit('/content?type=brain_dump')
 }
 
 // Auto-save functionality for ADHD users

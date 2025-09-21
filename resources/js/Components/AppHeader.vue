@@ -91,6 +91,7 @@
             v-for="(userMenuItem, index) in userMenuItems"
             :key="userMenuItem.name"
             :href="userMenuItem.href"
+            :method="userMenuItem.method"
             :style="{
               transitionDelay: showingMobileMenu ? `${(navigationItems.length + index) * 75 + 150}ms` : '0ms',
               transform: showingMobileMenu ? 'translateY(0)' : 'translateY(-8px)',
@@ -130,7 +131,7 @@ const props = defineProps({
     type: Array,
     default: () => [
       { name: 'Profile', href: '/profile' },
-      { name: 'Log Out', href: '/logout' }
+      { name: 'Log Out', href: '/logout', method: 'post' }
     ]
   }
 })
@@ -141,7 +142,7 @@ const page = usePage()
 const showingMobileMenu = ref(false)
 
 const userName = computed(() => page.props.auth?.user?.name || 'User')
-const userEmail = computed(() => page.props.auth?.user?.email || 'user@example.com')
+const userEmail = computed(() => page.props.auth?.user?.email || '')
 
 const toggleMobileMenu = (isOpen) => {
   // Handle both manual toggle calls and MenuToggle component calls

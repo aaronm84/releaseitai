@@ -446,12 +446,17 @@ Content to analyze:
     private function parseEntityDetectionResponse(string $response): array
     {
         try {
-            $decoded = json_decode($response, true);
+            // Clean the response - remove markdown code blocks if present
+            $cleanResponse = $this->cleanJsonResponse($response);
+
+
+            $decoded = json_decode($cleanResponse, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 Log::warning('Failed to decode AI entity detection response', [
                     'error' => json_last_error_msg(),
-                    'response_preview' => substr($response, 0, 200)
+                    'response_preview' => substr($response, 0, 200),
+                    'cleaned_preview' => substr($cleanResponse, 0, 200)
                 ]);
                 return $this->getDefaultEntityStructure();
             }
@@ -473,6 +478,24 @@ Content to analyze:
 
             return $this->getDefaultEntityStructure();
         }
+    }
+
+    /**
+     * Clean JSON response by removing markdown code blocks and extra formatting
+     */
+    private function cleanJsonResponse(string $response): string
+    {
+        // Remove markdown code blocks - be more aggressive
+        $response = preg_replace('/^\s*```(?:json)?\s*/m', '', $response);
+        $response = preg_replace('/\s*```\s*$/m', '', $response);
+
+        // Also handle cases where there might be other text before/after
+        $response = preg_replace('/.*?({.*}).*/s', '$1', $response);
+
+        // Remove any leading/trailing whitespace
+        $response = trim($response);
+
+        return $response;
     }
 
     /**

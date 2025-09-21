@@ -21,12 +21,17 @@
       <!-- Pill Row for minimized components -->
       <PillRow :pills="pills" @restore="restoreComponent" />
 
-    <!-- Morning Brief -->
+    <!-- Time-aware Brief -->
       <MinimizableComponent
         v-if="morningBrief"
         component-id="MorningBrief"
-        component-name="Morning Brief">
-        <MorningBrief :summary="morningBrief.summary" :highlights="morningBrief.highlights" />
+        :component-name="morningBrief.title">
+        <MorningBrief
+          :title="morningBrief.title"
+          :icon="morningBrief.icon"
+          :summary="morningBrief.summary"
+          :highlights="morningBrief.highlights"
+        />
       </MinimizableComponent>
 
       <div class="grid grid-cols-2 gap-4">
@@ -45,19 +50,6 @@
         </MinimizableComponent>
       </div>
 
-      <!-- End of Day Summary -->
-      <MinimizableComponent
-        v-if="shouldShowEndOfDaySummary"
-        component-id="EndOfDaySummary"
-        component-name="End of Day Summary">
-        <EndOfDaySummary
-          :completed-tasks="endOfDayData?.completedTasks || defaultEndOfDayData.completedTasks"
-          :meetings-attended="endOfDayData?.meetingsAttended || defaultEndOfDayData.meetingsAttended"
-          :key-decisions="endOfDayData?.keyDecisions || defaultEndOfDayData.keyDecisions"
-          :tomorrow-priorities="endOfDayData?.tomorrowPriorities || defaultEndOfDayData.tomorrowPriorities"
-          :encouraging-message="endOfDayData?.encouragingMessage || defaultEndOfDayData.encouragingMessage"
-        />
-      </MinimizableComponent>
 
 
       <!-- Workstreams Overview -->
@@ -279,7 +271,6 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import BrainDump from '@/Components/BrainDump.vue';
 import MorningBrief from '@/Components/MorningBrief.vue';
 import TopPriorities from '@/Components/TopPriorities.vue';
-import EndOfDaySummary from '@/Components/EndOfDaySummary.vue';
 import MinimizableComponent from '@/Components/MinimizableComponent.vue';
 import PillRow from '@/Components/PillRow.vue';
 import { useComponentMinimization } from '@/composables/useComponentMinimization';
@@ -292,7 +283,6 @@ const props = defineProps({
   user: Object,
   quickAddConfig: Object,
   morningBrief: Object,
-  endOfDayData: Object,
 });
 
 // Component minimization system
@@ -302,6 +292,7 @@ const {
   canBeMinimized,
   minimizeComponent,
   restoreComponent,
+  registerComponent,
   getComponentAriaAttributes,
   handleKeyboardEvent,
   getPillAriaAttributes,
@@ -317,6 +308,16 @@ provide('getComponentAriaAttributes', getComponentAriaAttributes);
 provide('handleKeyboardEvent', handleKeyboardEvent);
 provide('getPillAriaAttributes', getPillAriaAttributes);
 provide('handlePillKeyboardEvent', handlePillKeyboardEvent);
+
+// Register time-aware brief component with dynamic configuration
+if (props.morningBrief) {
+  registerComponent('MorningBrief', {
+    name: props.morningBrief.title,
+    icon: props.morningBrief.icon,
+    color: '#3B82F6',
+    description: `Restore ${props.morningBrief.title} component`
+  });
+}
 
 
 const currentDate = computed(() => {
@@ -341,34 +342,6 @@ const timeAwareGreeting = computed(() => {
   }
 });
 
-const shouldShowEndOfDaySummary = computed(() => {
-  const now = new Date();
-  const hour = now.getHours();
-  return hour >= 15; // 3:00 PM and later
-});
-
-const defaultEndOfDayData = computed(() => ({
-  completedTasks: [
-    'Completed user research interviews',
-    'Reviewed and approved design mockups',
-    'Sent project update to stakeholders'
-  ],
-  meetingsAttended: [
-    'Morning standup with development team',
-    'Client feedback session',
-    'Weekly planning meeting'
-  ],
-  keyDecisions: [
-    'Approved moving forward with prototype A',
-    'Scheduled additional user testing for next week'
-  ],
-  tomorrowPriorities: [
-    'Finalize feature specifications',
-    'Prepare presentation for stakeholder review',
-    'Follow up on pending approvals'
-  ],
-  encouragingMessage: "You've made great progress today! Focus on tomorrow's priorities to maintain momentum."
-}));
 
 
 const navigateToWorkstream = (workstreamId) => {

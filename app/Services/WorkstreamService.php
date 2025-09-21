@@ -37,7 +37,7 @@ class WorkstreamService
      */
     public function getWorkstreams(array $filters = [], int $perPage = 50): LengthAwarePaginator
     {
-        $query = Workstream::withEssentials();
+        $query = Workstream::query();
 
         // Apply filters
         if (isset($filters['type'])) {

@@ -91,7 +91,7 @@ class Stakeholder extends Model
         $rules = [
             'name' => 'required|string|max:255',
             'email' => [
-                'required',
+                'nullable',
                 'email',
                 "unique:stakeholders,email,{$stakeholderId},id,user_id,{$userId}"
             ],

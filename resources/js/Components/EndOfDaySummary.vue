@@ -1,5 +1,5 @@
 <template>
-  <div v-if="shouldShow && !isDismissed"
+  <div v-if="!isDismissed"
        class="dark-end-of-day rounded-xl p-6"
        style="border: 1px solid #27272A;"
        role="region"
@@ -135,12 +135,7 @@ const props = defineProps({
 
 const isDismissed = ref(false);
 
-// Time-based visibility (appears after 3:00 PM)
-const shouldShow = computed(() => {
-  const now = new Date();
-  const hour = now.getHours();
-  return hour >= 15; // 3:00 PM and later
-});
+// Note: Time-based visibility is now handled server-side in DashboardController
 
 // ARIA labels for accessibility
 const ariaLabels = computed(() => ({
@@ -189,8 +184,7 @@ watch(isDismissed, (newValue) => {
 defineExpose({
   dismiss,
   restore,
-  isDismissed: computed(() => isDismissed.value),
-  shouldShow
+  isDismissed: computed(() => isDismissed.value)
 });
 </script>
 

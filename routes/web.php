@@ -4,7 +4,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WorkstreamsController;
 use App\Http\Controllers\ReleaseController;
 use App\Http\Controllers\StakeholderController;
+use App\Http\Controllers\ContentController;
 use App\Http\Controllers\DesignSystemController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use Illuminate\Support\Facades\Route;
@@ -62,4 +64,15 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{stakeholder}', [StakeholderController::class, 'destroy'])->name('destroy');
         Route::patch('/{stakeholder}/contact', [StakeholderController::class, 'updateLastContact'])->name('update-contact');
     });
+
+    // Content management routes
+    Route::prefix('content')->name('content.')->group(function () {
+        Route::get('/', [ContentController::class, 'index'])->name('index');
+        Route::get('/{content}', [ContentController::class, 'show'])->name('show');
+        Route::delete('/{content}', [ContentController::class, 'destroy'])->name('destroy');
+    });
+
+    // Profile routes
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });

@@ -11,9 +11,7 @@
             class="minimize-button"
             :aria-label="`Minimize ${componentName} component`"
             title="Press Escape to minimize">
-      <svg class="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-      </svg>
+      <span class="minimize-line"></span>
     </button>
 
     <!-- Component content -->
@@ -94,10 +92,10 @@ const handleKeydown = (event) => {
   right: 0.75rem;
   z-index: 10;
   padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.375rem;
-  color: #9CA3AF;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0.25rem;
+  color: #FFFFFF !important;
   opacity: 0.7;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -108,15 +106,23 @@ const handleKeydown = (event) => {
 }
 
 .minimize-button:hover {
-  background: rgba(0, 0, 0, 0.8);
-  color: #F3F4F6;
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #FFFFFF !important;
+  opacity: 1;
 }
 
 .minimize-button:focus {
   opacity: 1;
   outline: 2px solid #884DFF;
   outline-offset: 2px;
+}
+
+.minimize-line {
+  display: block;
+  width: 16px;
+  height: 2px;
+  background: #FFFFFF;
+  border-radius: 1px;
 }
 
 .component-content {

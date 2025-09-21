@@ -13,16 +13,31 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
-    <body class="font-sans antialiased bg-gray-50">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0">
-            <div>
-                <a href="/">
-                    <h1 class="text-3xl font-bold text-gray-900">ReleaseIt.ai</h1>
-                </a>
-            </div>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
+        <style>
+            .auth-card {
+                background: rgba(9, 9, 11, 0.8);
+                border: 1px solid #27272A;
+                border-radius: 16px;
+                backdrop-filter: blur(12px);
+            }
+            .purple-gradient-button {
+                background: linear-gradient(135deg, #884DFF 0%, #9333EA 100%);
+                box-shadow: 0 4px 15px rgba(136, 77, 255, 0.3);
+            }
+            .purple-gradient-button:hover {
+                background: linear-gradient(135deg, #9333EA 0%, #A855F7 100%);
+                box-shadow: 0 6px 20px rgba(136, 77, 255, 0.4);
+            }
+            body {
+                background: #090909;
+            }
+        </style>
+    </head>
+    <body class="font-sans antialiased" style="background: #090909; min-height: 100vh;">
+        <div class="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4" >
+            <!-- Auth Form Card -->
+            <div>
                 @yield('content')
             </div>
         </div>

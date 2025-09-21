@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ApprovalRequestController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BrainDumpController;
 use App\Http\Controllers\Api\ChecklistAssignmentController;
 use App\Http\Controllers\Api\ChecklistDependencyController;
 use App\Http\Controllers\Api\CommunicationController;
@@ -31,6 +32,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('content', ContentController::class);
     Route::post('content/{content}/reprocess', [ContentController::class, 'reprocess']);
     Route::get('content/{content}/analysis', [ContentController::class, 'analysis']);
+
+    // Brain dump processing routes
+    Route::post('brain-dump/process', [BrainDumpController::class, 'process']);
     // Release stakeholder management routes
     Route::prefix('releases/{release}')->group(function () {
         Route::get('stakeholders', [ReleaseStakeholderController::class, 'index']);
