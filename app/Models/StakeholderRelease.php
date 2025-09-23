@@ -36,7 +36,7 @@ class StakeholderRelease extends Pivot
     /**
      * The valid stakeholder roles.
      */
-    public const ROLES = ['owner', 'reviewer', 'approver', 'observer'];
+    public const ROLES = ['viewer', 'reviewer', 'approver', 'manager', 'owner', 'observer'];
 
     /**
      * The valid notification preferences.

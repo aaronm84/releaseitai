@@ -323,6 +323,218 @@ class Workstream extends Model
     }
 
     /**
+     * Scope a query to efficiently load workstreams with their complete hierarchy data.
+     */
+    public function scopeWithCompleteHierarchy($query)
+    {
+        return $query->with([
+            'owner:id,name,email',
+            'parentWorkstream:id,name,type,hierarchy_depth',
+            'childWorkstreams:id,name,type,parent_workstream_id,hierarchy_depth',
+            'childWorkstreams.owner:id,name,email'
+        ]);
+    }
+
+    /**
+     * Scope a query to load workstreams with optimized permission data.
+     */
+    public function scopeWithPermissions($query, ?int $userId = null)
+    {
+        if ($userId) {
+            return $query->with([
+                'permissions' => function ($query) use ($userId) {
+                    $query->where('user_id', $userId)
+                          ->select('workstream_id', 'user_id', 'permission_type', 'scope');
+                }
+            ]);
+        }
+
+        return $query->with(['permissions:workstream_id,user_id,permission_type,scope']);
+    }
+
+    /**
+     * Scope a query to bulk load multiple workstreams with essential data.
+     */
+    public function scopeWithBulkEssentials($query)
+    {
+        return $query->select([
+            'id', 'name', 'type', 'status', 'owner_id',
+            'parent_workstream_id', 'hierarchy_depth',
+            'created_at', 'updated_at'
+        ])->with([
+            'owner:id,name,email',
+            'parentWorkstream:id,name,type'
+        ]);
+    }
+
+    /**
+     * Scope a query to load workstreams with release summary data.
+     */
+    public function scopeWithReleaseSummary($query)
+    {
+        return $query->withCount([
+            'releases',
+            'releases as active_releases_count' => function ($query) {
+                $query->where('status', '!=', 'completed');
+            }
+        ]);
+    }
+
+    /**
+     * Scope a query to load workstreams optimized for hierarchy tree building.
+     */
+    public function scopeForHierarchyTree($query)
+    {
+        return $query->select([
+            'id', 'name', 'type', 'status', 'owner_id',
+            'parent_workstream_id', 'hierarchy_depth'
+        ])->with(['owner:id,name,email'])
+        ->orderBy('hierarchy_depth')
+        ->orderBy('name');
+    }
+
+    /**
+     * Scope a query to get descendants of specific workstreams efficiently.
+     */
+    public function scopeDescendantsOf($query, array $workstreamIds)
+    {
+        return $query->whereIn('parent_workstream_id', $workstreamIds)
+                     ->orWhereHas('parentWorkstream', function ($subQuery) use ($workstreamIds) {
+                         $subQuery->whereIn('parent_workstream_id', $workstreamIds);
+                     });
+    }
+
+    /**
+     * Scope a query to filter by multiple hierarchy depths.
+     */
+    public function scopeAtDepths($query, array $depths)
+    {
+        return $query->whereIn('hierarchy_depth', $depths);
+    }
+
+    /**
+     * Scope a query for bulk operations with minimal data.
+     */
+    public function scopeForBulkOperations($query)
+    {
+        return $query->select(['id', 'name', 'type', 'status', 'parent_workstream_id', 'hierarchy_depth']);
+    }
+
+    /**
+     * Bulk load workstreams with their children using optimized queries.
+     */
+    public static function loadWithChildrenBulk(array $workstreamIds): Collection
+    {
+        return static::whereIn('id', $workstreamIds)
+            ->withCompleteHierarchy()
+            ->get()
+            ->load(['childWorkstreams.childWorkstreams']); // Load grandchildren too
+    }
+
+    /**
+     * Bulk load workstreams with their owners using single query.
+     */
+    public static function loadWithOwnersBulk(array $workstreamIds): Collection
+    {
+        return static::whereIn('id', $workstreamIds)
+            ->with(['owner:id,name,email'])
+            ->get();
+    }
+
+    /**
+     * Bulk load workstreams with permission context for a user.
+     */
+    public static function loadWithPermissionsBulk(array $workstreamIds, int $userId): Collection
+    {
+        return static::whereIn('id', $workstreamIds)
+            ->withPermissions($userId)
+            ->withBulkEssentials()
+            ->get();
+    }
+
+    /**
+     * Load complete hierarchy trees for multiple root workstreams efficiently.
+     */
+    public static function loadHierarchyTreesBulk(array $rootWorkstreamIds): Collection
+    {
+        // First load all root workstreams
+        $roots = static::whereIn('id', $rootWorkstreamIds)
+            ->forHierarchyTree()
+            ->get();
+
+        // Then bulk load all descendants
+        $allDescendantIds = [];
+        foreach ($roots as $root) {
+            $descendants = $root->getAllDescendantsOptimized();
+            $allDescendantIds = array_merge($allDescendantIds, $descendants->pluck('id')->toArray());
+        }
+
+        if (!empty($allDescendantIds)) {
+            // Load all descendants with their relationships in one query
+            $descendants = static::whereIn('id', $allDescendantIds)
+                ->forHierarchyTree()
+                ->get()
+                ->keyBy('id');
+
+            // Attach descendants to their parents efficiently
+            foreach ($roots as $root) {
+                $root->setRelation('allDescendants',
+                    $descendants->filter(function ($descendant) use ($root) {
+                        return $descendant->hierarchy_depth > $root->hierarchy_depth;
+                    })
+                );
+            }
+        }
+
+        return $roots;
+    }
+
+    /**
+     * Search workstreams with hierarchy context using optimized queries.
+     */
+    public static function searchWithHierarchyContext(string $searchTerm, array $filters = []): Collection
+    {
+        $query = static::where('name', 'LIKE', "%{$searchTerm}%")
+            ->withCompleteHierarchy();
+
+        // Apply filters
+        if (isset($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['hierarchy_depth'])) {
+            $query->where('hierarchy_depth', $filters['hierarchy_depth']);
+        }
+
+        return $query->orderBy('hierarchy_depth')
+                     ->orderBy('name')
+                     ->get();
+    }
+
+    /**
+     * Get workstreams that need permission validation in bulk.
+     */
+    public static function loadForPermissionValidation(array $workstreamIds, int $userId): Collection
+    {
+        return static::whereIn('id', $workstreamIds)
+            ->select(['id', 'name', 'type', 'owner_id', 'parent_workstream_id', 'hierarchy_depth'])
+            ->with([
+                'permissions' => function ($query) use ($userId) {
+                    $query->where('user_id', $userId);
+                },
+                'parentWorkstream:id,owner_id,parent_workstream_id',
+                'parentWorkstream.permissions' => function ($query) use ($userId) {
+                    $query->where('user_id', $userId)->where('scope', 'workstream_and_children');
+                }
+            ])
+            ->get();
+    }
+
+    /**
      * Create a hierarchy efficiently for testing purposes.
      */
     public static function createHierarchyFast(int $depth = 4, int $branchingFactor = 5, ?User $owner = null): array
@@ -331,68 +543,46 @@ class Workstream extends Model
             $owner = User::first() ?? User::factory()->create();
         }
 
-        // Disable model events for performance
-        static::unsetEventDispatcher();
-
         $allWorkstreams = [];
 
-        // Create root workstreams using raw SQL for speed
-        $rootData = [];
+        // Create root workstreams using the factory for better compatibility
+        $roots = collect();
         for ($i = 0; $i < $branchingFactor; $i++) {
-            $rootData[] = [
+            $root = static::factory()->create([
                 'name' => "Root Workstream {$i}",
                 'type' => 'product_line',
                 'status' => 'active',
                 'owner_id' => $owner->id,
+                'parent_workstream_id' => null,
                 'hierarchy_depth' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
+            ]);
+            $roots->push($root);
         }
 
-        DB::table('workstreams')->insert($rootData);
-
-        // Get the created root IDs
-        $roots = static::whereNull('parent_workstream_id')->orderBy('id', 'desc')->limit($branchingFactor)->get();
         $allWorkstreams = array_merge($allWorkstreams, $roots->toArray());
-
         $currentLevel = $roots;
 
         // Create subsequent levels efficiently
         for ($level = 1; $level < $depth; $level++) {
-            $nextLevelData = [];
+            $nextLevel = collect();
 
             foreach ($currentLevel as $parent) {
                 for ($i = 0; $i < $branchingFactor; $i++) {
-                    $nextLevelData[] = [
+                    $child = static::factory()->create([
                         'name' => "Child {$level}-{$i} of {$parent->id}",
-                        'type' => 'initiative',
+                        'type' => $level === $depth - 1 ? 'experiment' : 'initiative',
                         'status' => 'active',
                         'owner_id' => $owner->id,
                         'parent_workstream_id' => $parent->id,
                         'hierarchy_depth' => $level + 1,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
+                    ]);
+                    $nextLevel->push($child);
                 }
             }
 
-            if (!empty($nextLevelData)) {
-                DB::table('workstreams')->insert($nextLevelData);
-
-                // Get the newly created workstreams for next iteration
-                $nextLevel = static::where('hierarchy_depth', $level + 1)
-                    ->orderBy('id', 'desc')
-                    ->limit(count($nextLevelData))
-                    ->get();
-
-                $allWorkstreams = array_merge($allWorkstreams, $nextLevel->toArray());
-                $currentLevel = $nextLevel;
-            }
+            $allWorkstreams = array_merge($allWorkstreams, $nextLevel->toArray());
+            $currentLevel = $nextLevel;
         }
-
-        // Re-enable model events
-        static::setEventDispatcher(app('events'));
 
         return [
             'roots' => $roots,

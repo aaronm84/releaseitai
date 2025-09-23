@@ -125,10 +125,7 @@ const handleKeydown = (event) => {
   border-radius: 1px;
 }
 
-.component-content {
-  width: 100%;
-  height: 100%;
-}
+
 
 /* Minimize animation */
 @keyframes minimizeOut {

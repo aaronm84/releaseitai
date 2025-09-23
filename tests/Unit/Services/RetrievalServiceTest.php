@@ -270,7 +270,7 @@ class RetrievalServiceTest extends TestCase
             'action' => 'accept',
             'signal_type' => 'explicit',
             'confidence' => 1.0,
-            'metadata' => json_encode(['context' => 'release_planning'])
+            'metadata' => ['context' => 'release_planning']
         ]);
 
         // Create bug fixing context example
@@ -295,7 +295,7 @@ class RetrievalServiceTest extends TestCase
             'action' => 'accept',
             'signal_type' => 'explicit',
             'confidence' => 1.0,
-            'metadata' => json_encode(['context' => 'bug_fixing'])
+            'metadata' => ['context' => 'bug_fixing']
         ]);
 
         // Create embeddings
@@ -340,7 +340,7 @@ class RetrievalServiceTest extends TestCase
         $this->assertGreaterThan(0, $examples->count());
 
         foreach ($examples as $example) {
-            $feedbackMetadata = json_decode($example['feedback']['metadata'], true);
+            $feedbackMetadata = $example['feedback']['metadata'];
             $this->assertEquals('release_planning', $feedbackMetadata['context']);
         }
     }

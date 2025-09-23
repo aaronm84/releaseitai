@@ -46,7 +46,17 @@ class Embedding extends Model
      */
     public function getVectorAsArray(): array
     {
-        return json_decode($this->vector, true) ?? [];
+        // Handle both pgvector format "[1,2,3]" and JSON format
+        $vector = $this->vector;
+
+        if (is_string($vector)) {
+            // Remove brackets if present (pgvector format)
+            $vector = trim($vector, '[]');
+            // Split by comma and convert to float
+            return array_map('floatval', explode(',', $vector));
+        }
+
+        return [];
     }
 
     /**
@@ -54,7 +64,8 @@ class Embedding extends Model
      */
     public function setVectorFromArray(array $vector): void
     {
-        $this->vector = json_encode($vector);
+        // Store as pgvector format: [1,2,3]
+        $this->vector = '[' . implode(',', $vector) . ']';
     }
 
     /**

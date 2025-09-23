@@ -11,6 +11,12 @@ use Inertia\Inertia;
 
 class ReleaseController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->authorizeResource(Release::class, 'release');
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();

@@ -20,6 +20,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Session Security Settings
+    |--------------------------------------------------------------------------
+    |
+    | These settings control session security behaviors during authentication
+    | to prevent session fixation and other security vulnerabilities.
+    |
+    | session_regeneration_on_login: Enables automatic session regeneration
+    | on successful authentication to prevent session fixation attacks.
+    | This is implemented via the RegenerateSessionOnAuth middleware.
+    |
+    */
+
+    'session_regeneration_on_login' => env('AUTH_SESSION_REGENERATION', true),
+
+    'session_regeneration_middleware' => \App\Http\Middleware\RegenerateSessionOnAuth::class,
+
+    /*
+    |--------------------------------------------------------------------------
     | Authentication Guards
     |--------------------------------------------------------------------------
     |
@@ -110,6 +128,6 @@ return [
     |
     */
 
-    'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+    'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 900), // 15 minutes for security
 
 ];

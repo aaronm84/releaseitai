@@ -9,6 +9,12 @@ use Inertia\Inertia;
 
 class WorkstreamsController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->authorizeResource(Workstream::class, 'workstream');
+    }
+
     public function index()
     {
         $workstreams = Workstream::with(['children', 'releases'])

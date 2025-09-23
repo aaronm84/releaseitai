@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Workstream;
 use App\Models\WorkstreamPermission;
+use App\Traits\DistributedCacheable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -21,6 +22,7 @@ use Illuminate\Support\Facades\DB;
  */
 class WorkstreamService
 {
+    use DistributedCacheable;
     /**
      * Get paginated workstreams with filtering options.
      *
@@ -37,7 +39,7 @@ class WorkstreamService
      */
     public function getWorkstreams(array $filters = [], int $perPage = 50): LengthAwarePaginator
     {
-        $query = Workstream::query();
+        $query = Workstream::withBulkEssentials();
 
         // Apply filters
         if (isset($filters['type'])) {
@@ -56,7 +58,7 @@ class WorkstreamService
             }
         }
 
-        // Add performance-optimized pagination
+        // Add performance-optimized pagination with essential relationships
         $perPage = min($perPage, 100); // Max 100 items per page
 
         return $query->orderBy('name')->paginate($perPage);
@@ -105,7 +107,8 @@ class WorkstreamService
             return null;
         }
 
-        $workstream->load(['owner', 'parentWorkstream']);
+        // Use optimized loading with essential relationships
+        $workstream->load(['owner:id,name,email', 'parentWorkstream:id,name,type,hierarchy_depth']);
         return $workstream;
     }
 
@@ -119,7 +122,7 @@ class WorkstreamService
         }
 
         $workstream->update($data);
-        $workstream->load(['owner', 'parentWorkstream']);
+        $workstream->load(['owner:id,name,email', 'parentWorkstream:id,name,type,hierarchy_depth']);
 
         return $workstream;
     }
@@ -246,7 +249,10 @@ class WorkstreamService
 
         DB::transaction(function () use ($workstreamIds, $updates, $chunkSize, &$totalUpdated, &$updatedWorkstreams) {
             collect($workstreamIds)->chunk($chunkSize)->each(function ($chunk) use ($updates, &$totalUpdated, &$updatedWorkstreams) {
-                $workstreams = Workstream::whereIn('id', $chunk->toArray())->get();
+                // Use optimized bulk loading for workstreams
+                $workstreams = Workstream::forBulkOperations()
+                    ->whereIn('id', $chunk->toArray())
+                    ->get();
 
                 foreach ($workstreams as $workstream) {
                     $workstream->update($updates);
@@ -284,10 +290,14 @@ class WorkstreamService
             return true;
         }
 
-        // Cache permission checks for performance
-        $cacheKey = "workstream_permission_{$workstream->id}_{$userId}_{$permissionType}";
+        // Cache permission checks for performance using distributed cache
+        $cacheKey = $this->buildDistributedCacheKey('user_permissions_check', [
+            'workstream_id' => $workstream->id,
+            'user_id' => $userId,
+            'type' => $permissionType
+        ]);
 
-        return Cache::remember($cacheKey, 300, function () use ($workstream, $userId, $permissionType) {
+        return $this->cachePermissionData($cacheKey, function () use ($workstream, $userId, $permissionType) {
             // Get effective permissions for the user
             $effectivePermissions = $workstream->getEffectivePermissionsForUser($userId);
 
@@ -303,7 +313,7 @@ class WorkstreamService
             }
 
             return false;
-        });
+        }, $userId, ["workstream:{$workstream->id}"]);
     }
 
     /**
@@ -321,5 +331,75 @@ class WorkstreamService
         }
 
         return false;
+    }
+
+    /**
+     * Get multiple workstreams with their children efficiently.
+     */
+    public function getWorkstreamsWithChildren(array $workstreamIds): Collection
+    {
+        return Workstream::whereIn('id', $workstreamIds)
+            ->withCompleteHierarchy()
+            ->get();
+    }
+
+    /**
+     * Get multiple workstreams with their owners efficiently.
+     */
+    public function getWorkstreamsWithOwners(array $workstreamIds): Collection
+    {
+        return Workstream::whereIn('id', $workstreamIds)
+            ->with(['owner:id,name,email'])
+            ->get();
+    }
+
+    /**
+     * Get workstreams with permission context for bulk operations.
+     */
+    public function getWorkstreamsWithPermissions(array $workstreamIds, int $userId): Collection
+    {
+        return Workstream::whereIn('id', $workstreamIds)
+            ->withPermissions($userId)
+            ->withBulkEssentials()
+            ->get();
+    }
+
+    /**
+     * Search workstreams with hierarchy context efficiently.
+     */
+    public function searchWorkstreamsWithHierarchy(string $searchTerm, array $filters = []): Collection
+    {
+        return Workstream::searchWithHierarchyContext($searchTerm, $filters);
+    }
+
+    /**
+     * Get hierarchy trees for multiple root workstreams efficiently.
+     */
+    public function getHierarchyTreesBulk(array $rootWorkstreamIds): Collection
+    {
+        return Workstream::loadHierarchyTreesBulk($rootWorkstreamIds);
+    }
+
+    /**
+     * Get workstreams with release summary data efficiently.
+     */
+    public function getWorkstreamsWithReleaseSummary(array $filters = []): Collection
+    {
+        $query = Workstream::withReleaseSummary();
+
+        // Apply filters
+        if (isset($filters['type'])) {
+            $query->ofType($filters['type']);
+        }
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['hierarchy_depth'])) {
+            $query->atDepth($filters['hierarchy_depth']);
+        }
+
+        return $query->get();
     }
 }

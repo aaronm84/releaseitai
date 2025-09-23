@@ -9,6 +9,12 @@ use Inertia\Inertia;
 
 class ContentController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->authorizeResource(Content::class, 'content');
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();

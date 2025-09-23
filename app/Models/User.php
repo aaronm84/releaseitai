@@ -24,6 +24,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'firebase_uid',
         'title',
         'company',
         'department',
@@ -41,6 +42,7 @@ class User extends Authenticatable
         'timezone',
         'is_available',
         'unavailable_until',
+        'profile_visibility',
     ];
 
     /**
@@ -198,5 +200,91 @@ class User extends Authenticatable
     public function hasApprovalsDueSoon(): bool
     {
         return $this->approvalRequestsDueSoon()->exists();
+    }
+
+    /**
+     * User roles constants.
+     */
+    public const ROLE_REGULAR = 'regular';
+    public const ROLE_PM = 'pm';
+    public const ROLE_PRODUCT_MANAGER = 'product_manager';
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_SYSTEM = 'system';
+
+    /**
+     * Check if the user is an admin.
+     */
+    public function isAdmin(): bool
+    {
+        return str_contains($this->email, 'admin@releaseit.com') ||
+               str_contains($this->email, '@releaseit.com');
+    }
+
+    /**
+     * Check if the user is a system user.
+     */
+    public function isSystemUser(): bool
+    {
+        return str_contains($this->email, 'system@releaseit.com');
+    }
+
+    /**
+     * Check if the user is a product manager.
+     */
+    public function isProductManager(): bool
+    {
+        return str_contains($this->email, 'pm@') ||
+               str_contains($this->title ?? '', 'Product Manager') ||
+               str_contains($this->title ?? '', 'PM');
+    }
+
+    /**
+     * Check if the user has a specific role.
+     */
+    public function hasRole(string $role): bool
+    {
+        return match ($role) {
+            self::ROLE_ADMIN => $this->isAdmin(),
+            self::ROLE_SYSTEM => $this->isSystemUser(),
+            self::ROLE_PRODUCT_MANAGER, self::ROLE_PM => $this->isProductManager(),
+            self::ROLE_REGULAR => !$this->isAdmin() && !$this->isSystemUser() && !$this->isProductManager(),
+            default => false,
+        };
+    }
+
+    /**
+     * Get the user's primary role.
+     */
+    public function getPrimaryRole(): string
+    {
+        if ($this->isSystemUser()) {
+            return self::ROLE_SYSTEM;
+        }
+
+        if ($this->isAdmin()) {
+            return self::ROLE_ADMIN;
+        }
+
+        if ($this->isProductManager()) {
+            return self::ROLE_PRODUCT_MANAGER;
+        }
+
+        return self::ROLE_REGULAR;
+    }
+
+    /**
+     * Check if the user can perform administrative actions.
+     */
+    public function canPerformAdminActions(): bool
+    {
+        return $this->isAdmin() || $this->isSystemUser();
+    }
+
+    /**
+     * Check if the user can access system-level features.
+     */
+    public function canAccessSystemFeatures(): bool
+    {
+        return $this->isSystemUser();
     }
 }

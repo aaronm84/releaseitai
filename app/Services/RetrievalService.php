@@ -6,6 +6,7 @@ use App\Models\Input;
 use App\Models\Output;
 use App\Models\Feedback;
 use App\Models\Embedding;
+use App\Traits\DistributedCacheable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -19,6 +20,7 @@ use InvalidArgumentException;
  */
 class RetrievalService
 {
+    use DistributedCacheable;
     /**
      * Find similar feedback examples for RAG prompting
      *
@@ -29,6 +31,17 @@ class RetrievalService
      */
     public function findSimilarFeedbackExamples(int $inputId, array $filters = [], int|null $limit = null): Collection
     {
+        // Create cache key from parameters
+        $cacheKey = $this->buildDistributedCacheKey('similar_feedback', [
+            'hash' => md5($inputId . serialize($filters) . $limit)
+        ]);
+
+        // Check cache first using distributed cache
+        $cached = $this->distributedCacheGet($cacheKey);
+        if ($cached !== null) {
+            return collect($cached);
+        }
+
         $input = Input::find($inputId);
         if (!$input) {
             throw new InvalidArgumentException('Input not found');
@@ -43,7 +56,9 @@ class RetrievalService
             return collect();
         }
 
-        // Build query for similar feedback examples
+        // Build query for similar feedback examples using pgvector similarity
+        $inputVectorString = $inputEmbedding->vector;
+
         $query = DB::table('embeddings as e')
             ->join('inputs as i', function($join) {
                 $join->on('e.content_id', '=', 'i.id')
@@ -63,9 +78,10 @@ class RetrievalService
                 'f.action as feedback_action',
                 'f.confidence as feedback_confidence',
                 'f.metadata as feedback_metadata',
-                'e.vector as embedding_vector'
+                DB::raw("1 - (e.vector <=> '{$inputVectorString}') as similarity_score")
             ])
-            ->where('i.id', '!=', $inputId); // Exclude the query input itself
+            ->where('i.id', '!=', $inputId) // Exclude the query input itself
+            ->orderBy('similarity_score', 'desc'); // Order by similarity (highest first)
 
         // Apply filters
         if (isset($filters['type'])) {
@@ -84,6 +100,11 @@ class RetrievalService
             $query->where('o.quality_score', '>=', $filters['min_quality_score']);
         }
 
+        // Context filtering (JSON metadata search)
+        if (isset($filters['context'])) {
+            $query->whereRaw("f.metadata->>'context' = ?", [$filters['context']]);
+        }
+
         // Handle positive feedback only filter
         if (isset($filters['positive_feedback_only']) && $filters['positive_feedback_only']) {
             $query->where('f.action', 'accept')
@@ -94,15 +115,15 @@ class RetrievalService
                   ->where('f.confidence', '>=', 0.8);
         }
 
-        // Get results and calculate similarity
+        // Apply similarity threshold filtering at database level for better performance
+        if (isset($filters['min_similarity'])) {
+            $query->whereRaw("1 - (e.vector <=> '{$inputVectorString}') >= ?", [$filters['min_similarity']]);
+        }
+
+        // Get results with similarity already calculated by pgvector
         $results = $query->get();
 
-        $examples = $results->map(function ($row) use ($inputEmbedding) {
-            $similarity = $this->calculateCosineSimilarity(
-                $this->parseVector($inputEmbedding->vector),
-                $this->parseVector($row->embedding_vector)
-            );
-
+        $examples = $results->map(function ($row) {
             return [
                 'input' => [
                     'id' => $row->input_id,
@@ -121,19 +142,25 @@ class RetrievalService
                     'confidence' => (float) $row->feedback_confidence,
                     'metadata' => json_decode($row->feedback_metadata, true) ?? []
                 ],
-                'similarity_score' => $similarity
+                'similarity_score' => (float) $row->similarity_score
             ];
         });
 
-        // Sort by similarity score (highest first)
-        $examples = $examples->sortByDesc('similarity_score');
+        // Results are already sorted by similarity (highest first) due to ORDER BY in query
 
         // Apply limit
         if ($limit) {
             $examples = $examples->take($limit);
         }
 
-        return $examples->values();
+        $result = $examples->values();
+
+        // Cache the results using distributed cache
+        $this->cacheSimilarityData($cacheKey, function () use ($result) {
+            return $result->toArray();
+        }, ["input_similarity:{$inputId}", 'rag_similarity']);
+
+        return $result;
     }
 
     /**
@@ -259,9 +286,11 @@ class RetrievalService
      */
     private function getUserFeedbackPatterns(int $userId): array
     {
-        $cacheKey = "user_feedback_patterns_{$userId}";
+        $cacheKey = $this->buildDistributedCacheKey('user_feedback_patterns', [
+            'user_id' => $userId
+        ]);
 
-        return Cache::remember($cacheKey, now()->addHours(4), function () use ($userId) {
+        return $this->cacheFeedbackData($cacheKey, function () use ($userId) {
             $feedbacks = Feedback::where('user_id', $userId)
                 ->with(['output'])
                 ->get();

@@ -11,6 +11,12 @@ use Inertia\Inertia;
 
 class StakeholderController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->authorizeResource(Stakeholder::class, 'stakeholder');
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();

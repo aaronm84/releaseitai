@@ -12,7 +12,7 @@
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @vite(['resources/css/app.css', 'resources/js/auth.js'])
 
         <style>
             .auth-card {
@@ -37,7 +37,7 @@
     <body class="font-sans antialiased" style="background: #090909; min-height: 100vh;">
         <div class="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4" >
             <!-- Auth Form Card -->
-            <div>
+            <div id="app">
                 @yield('content')
             </div>
         </div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\FirebaseAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -178,6 +179,41 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Password updated successfully'
+        ]);
+    }
+
+    /**
+     * Authenticate with Firebase token
+     */
+    public function firebase(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => ['required', 'string'],
+            'profile_data' => ['sometimes', 'array'],
+            'profile_data.title' => ['sometimes', 'string', 'max:255'],
+            'profile_data.source' => ['sometimes', 'string', 'max:255'],
+        ]);
+
+        $firebaseAuth = app(FirebaseAuthService::class);
+        $claims = $firebaseAuth->verifyToken($request->token);
+
+        if (!$claims) {
+            return response()->json([
+                'message' => 'Invalid Firebase token'
+            ], 401);
+        }
+
+        $user = $firebaseAuth->getOrCreateUser($claims, $request->input('profile_data', []));
+
+        // Create Sanctum token for API usage
+        $token = $user->createToken('firebase_auth_token')->plainTextToken;
+
+        // Also establish Laravel session for web routes
+        Auth::login($user, true); // true = remember me
+
+        return response()->json([
+            'user' => $user,
+            'token' => $token
         ]);
     }
 }

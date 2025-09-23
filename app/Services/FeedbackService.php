@@ -6,6 +6,7 @@ use App\Models\Feedback;
 use App\Models\Output;
 use App\Models\Input;
 use App\Models\User;
+use App\Traits\DistributedCacheable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Carbon;
@@ -20,6 +21,7 @@ use Exception;
  */
 class FeedbackService
 {
+    use DistributedCacheable;
     /**
      * Capture inline feedback (accept/edit/reject) on AI-generated content
      *
@@ -354,8 +356,11 @@ class FeedbackService
             'updated_at' => Carbon::now()
         ];
 
-        // Cache user preferences for quick access
-        Cache::put("user_preferences_{$userId}", $preferences, now()->addHours(24));
+        // Cache user preferences using distributed cache
+        $cacheKey = $this->buildDistributedCacheKey('user_preferences', ['user_id' => $userId]);
+        $this->cacheFeedbackData($cacheKey, function () use ($preferences) {
+            return $preferences;
+        }, ["user_feedback_patterns:{$userId}", "user_preferences:{$userId}"]);
 
         return $preferences;
     }
@@ -560,14 +565,17 @@ class FeedbackService
      */
     public function checkRateLimit(int $userId): bool
     {
-        $key = "feedback_rate_limit_{$userId}";
-        $submissions = Cache::get($key, 0);
+        $key = $this->buildDistributedCacheKey('rate_limit', [
+            'type' => 'feedback',
+            'user_id' => $userId
+        ]);
+        $submissions = $this->distributedCacheGet($key, 0);
 
         if ($submissions >= 5) { // Max 5 submissions per minute
             return false;
         }
 
-        Cache::put($key, $submissions + 1, now()->addMinute());
+        $this->distributedCachePut($key, $submissions + 1, 60); // 1 minute TTL
         return true;
     }
 

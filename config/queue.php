@@ -43,6 +43,36 @@ return [
             'after_commit' => false,
         ],
 
+        // High priority queue for urgent AI operations
+        'high-priority' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'high-priority',
+            'retry_after' => (int) env('HIGH_PRIORITY_QUEUE_RETRY_AFTER', 60),
+            'after_commit' => false,
+        ],
+
+        // Medium priority queue for standard AI operations
+        'medium-priority' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'medium-priority',
+            'retry_after' => (int) env('MEDIUM_PRIORITY_QUEUE_RETRY_AFTER', 180),
+            'after_commit' => false,
+        ],
+
+        // Low priority queue for background AI operations
+        'low-priority' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'low-priority',
+            'retry_after' => (int) env('LOW_PRIORITY_QUEUE_RETRY_AFTER', 300),
+            'after_commit' => false,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => env('BEANSTALKD_QUEUE_HOST', 'localhost'),

@@ -9,15 +9,46 @@ use App\Http\Controllers\DesignSystemController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
-// Authentication Routes (Public)
-Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [LoginController::class, 'login']);
-Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('/register', [RegisterController::class, 'register']);
-Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+// Authentication Routes (Public) - Apply web middleware group for session handling
+Route::middleware(['web'])->group(function () {
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->middleware('guest')->name('login');
+    Route::post('/login', [LoginController::class, 'login'])->middleware('guest');
+    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->middleware('guest')->name('register');
+    Route::post('/register', [RegisterController::class, 'register'])->middleware('guest');
+    Route::get('/verify-email', function () {
+        return view('auth.verify-email', ['userEmail' => request()->query('email', 'your email')]);
+    })->name('verify-email');
+
+    // Firebase email verification callback
+    Route::get('/auth/verify-email-callback', function () {
+        return view('auth.verify-email-callback');
+    })->name('verify-email-callback');
+
+    // Firebase magic link callback
+    Route::get('/auth/magic-link-callback', function () {
+        return view('auth.magic-link-callback');
+    })->name('magic-link-callback');
+
+    // Firebase auth endpoint for web (session-based)
+    Route::post('/auth/firebase', [AuthController::class, 'firebase'])->name('auth.firebase');
+    Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
+});
+
+// Password Reset Routes - Also need web middleware
+Route::middleware(['web'])->group(function () {
+    Route::get('/forgot-password', function () {
+        return view('auth.forgot-password');
+    })->middleware('guest')->name('password.request');
+
+    Route::get('/reset-password/{token}', function (string $token) {
+        return view('auth.reset-password', ['token' => $token]);
+    })->middleware('guest')->name('password.reset');
+});
+
 
 // Root route - redirect to dashboard if authenticated, login if not
 Route::get('/', function () {
@@ -29,13 +60,13 @@ Route::get('/', function () {
 
 // Dashboard route (protected)
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware('auth')
+    ->middleware(['auth', 'firebase.verified'])
     ->name('dashboard');
 
 // Public routes (accessible without authentication)
 Route::get('/design-system', [DesignSystemController::class, 'index'])->name('design-system');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'firebase.verified'])->group(function () {
     Route::prefix('workstreams')->name('workstreams.')->group(function () {
         Route::get('/', [WorkstreamsController::class, 'index'])->name('index');
         Route::get('/{workstream}', [WorkstreamsController::class, 'show'])->name('show');

@@ -16,9 +16,10 @@ use Illuminate\Support\Facades\Route;
 // Authentication routes (public)
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/auth/firebase', [AuthController::class, 'firebase']);
 
 // Authenticated user routes
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'firebase.verified'])->group(function () {
     // Authentication routes that require authentication
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
@@ -27,9 +28,15 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // All API routes require authentication
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'firebase.verified'])->group(function () {
     // Content management routes
-    Route::apiResource('content', ContentController::class);
+    Route::apiResource('content', ContentController::class)->names([
+        'index' => 'api.content.index',
+        'store' => 'api.content.store',
+        'show' => 'api.content.show',
+        'update' => 'api.content.update',
+        'destroy' => 'api.content.destroy',
+    ]);
     Route::post('content/{content}/reprocess', [ContentController::class, 'reprocess']);
     Route::get('content/{content}/analysis', [ContentController::class, 'analysis']);
 
@@ -72,7 +79,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('workstreams/bulk-update', [WorkstreamController::class, 'bulkUpdate']);
 
     // Workstream management routes
-    Route::apiResource('workstreams', WorkstreamController::class);
+    Route::apiResource('workstreams', WorkstreamController::class)->names([
+        'index' => 'api.workstreams.index',
+        'store' => 'api.workstreams.store',
+        'show' => 'api.workstreams.show',
+        'update' => 'api.workstreams.update',
+        'destroy' => 'api.workstreams.destroy',
+    ]);
 
     // Additional workstream hierarchy routes
     Route::prefix('workstreams')->group(function () {
